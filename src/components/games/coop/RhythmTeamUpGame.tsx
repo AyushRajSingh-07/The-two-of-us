@@ -121,18 +121,18 @@ export const RhythmTeamUpGame: React.FC<{ onBack: () => void }> = ({ onBack }) =
   });
 
   return (
-    <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 md:p-8 border border-rose-100 shadow-xl animate-fade-in">
+    <div className="max-w-3xl mx-auto bg-white dark:bg-[#191422] rounded-3xl p-6 md:p-8 border border-rose-100 dark:border-rose-900/40 shadow-xl text-warmgray-900 dark:text-warmgray-100 animate-fade-in transition-colors">
       {/* Top Bar */}
-      <div className="flex items-center justify-between pb-4 border-b border-rose-100 mb-4">
+      <div className="flex items-center justify-between pb-4 border-b border-rose-100 dark:border-rose-900/40 mb-4">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs font-semibold text-warmgray-500 hover:text-rose-600 transition"
+          className="flex items-center gap-1.5 text-xs font-semibold text-warmgray-500 dark:text-warmgray-400 hover:text-rose-600 dark:hover:text-rose-400 transition"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Games
         </button>
 
         <div className="flex items-center gap-3">
-          <span className="text-xs font-bold text-rose-600 flex items-center gap-1">
+          <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
             <Music className="w-3.5 h-3.5" /> Score: {score} • Combo: {combo}x
           </span>
         </div>
@@ -142,7 +142,7 @@ export const RhythmTeamUpGame: React.FC<{ onBack: () => void }> = ({ onBack }) =
       <SessionInviteBar sessionId={sessionId} gameTitle="Rhythm Team-Up" />
 
       <div className="text-center mb-4">
-        <h2 className="text-2xl font-serif font-bold text-warmgray-900">Rhythm Team-Up</h2>
+        <h2 className="text-2xl font-serif font-bold text-warmgray-900 dark:text-warmgray-100">Rhythm Team-Up</h2>
         <p className="text-xs text-warmgray-500 mt-0.5">
           Harmonize your heartbeats! Tap as the falling hearts reach the sweet spot bar.
         </p>

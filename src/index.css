@@ -12,6 +12,13 @@
   body {
     background-color: #faf8f6;
     color: #292524;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  html.dark body {
+    background-color: #0f0d13;
+    color: #f3edf2;
+    color-scheme: dark;
   }
 }
 
@@ -47,4 +54,11 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #fb7185;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #4c1d2f;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #881337;
 }

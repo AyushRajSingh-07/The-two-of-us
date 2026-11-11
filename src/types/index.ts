@@ -1,10 +1,12 @@
 export type CategoryType = 'romantic' | 'funny' | 'coop';
+export type ThemeMode = 'light' | 'dark';
 
 export interface UserProfile {
   id: string;
   name: string;
   avatar: string;
   bio?: string;
+  theme?: ThemeMode;
   email?: string;
   isPartner1: boolean;
 }
@@ -14,9 +16,11 @@ export interface CoupleSpace {
   partner1Name: string;
   partner1Avatar: string;
   partner1Bio?: string;
+  partner1Theme?: ThemeMode;
   partner2Name: string;
   partner2Avatar: string;
   partner2Bio?: string;
+  partner2Theme?: ThemeMode;
   anniversaryDate: string; // YYYY-MM-DD
   welcomeMessage: string;
   inviteCode: string;

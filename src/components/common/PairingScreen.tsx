@@ -32,42 +32,42 @@ export const PairingScreen: React.FC<{ onPaired: () => void }> = ({ onPaired }) 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-[#faf7f5] to-champagne-100/70 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-rose-100 shadow-2xl relative overflow-hidden animate-fade-in">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-[#faf7f5] to-champagne-100/70 dark:from-[#0f0d14] dark:via-[#15101d] dark:to-[#1a1222] flex items-center justify-center p-4 transition-colors">
+      <div className="max-w-md w-full bg-white dark:bg-[#191422] rounded-3xl p-8 border border-rose-100 dark:border-rose-900/50 shadow-2xl relative overflow-hidden animate-fade-in transition-colors">
         {/* Glow accent */}
-        <div className="absolute -top-12 -right-12 w-32 h-32 bg-rose-200/50 rounded-full blur-2xl -z-0" />
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-rose-200/50 dark:bg-rose-900/30 rounded-full blur-2xl -z-0 pointer-events-none" />
 
         <div className="text-center mb-6 relative z-10">
-          <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+          <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/60 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
             <Heart className="w-8 h-8 fill-rose-500 animate-pulse" />
           </div>
-          <h1 className="font-serif font-bold text-2xl text-warmgray-900">Two of Us</h1>
-          <p className="text-xs text-rose-600 font-semibold uppercase tracking-wider mt-0.5">
+          <h1 className="font-serif font-bold text-2xl text-warmgray-900 dark:text-warmgray-100">Two of Us</h1>
+          <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold uppercase tracking-wider mt-0.5">
             Our Private Sanctuary
           </p>
-          <p className="text-xs text-warmgray-500 mt-2 max-w-xs mx-auto">
+          <p className="text-xs text-warmgray-500 dark:text-warmgray-400 mt-2 max-w-xs mx-auto">
             {couple?.welcomeMessage || 'A private world crafted for just the two of us.'}
           </p>
         </div>
 
         {errorMsg && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl text-center">
+          <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs rounded-xl text-center">
             {errorMsg}
           </div>
         )}
 
         {isSuccess ? (
           <div className="text-center py-6 space-y-2 animate-scale-up">
-            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto">
               <Sparkles className="w-6 h-6" />
             </div>
-            <h3 className="font-serif font-bold text-lg text-warmgray-900">Welcome Home! 💕</h3>
-            <p className="text-xs text-warmgray-600">Entering our private space...</p>
+            <h3 className="font-serif font-bold text-lg text-warmgray-900 dark:text-warmgray-100">Welcome Home! 💕</h3>
+            <p className="text-xs text-warmgray-600 dark:text-warmgray-300">Entering our private space...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
             <div>
-              <label className="block text-xs font-semibold text-warmgray-700 mb-1 flex items-center gap-1.5">
+              <label className="block text-xs font-semibold text-warmgray-700 dark:text-warmgray-300 mb-1 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-rose-500" /> Your Name / Nickname
               </label>
               <input
@@ -75,13 +75,13 @@ export const PairingScreen: React.FC<{ onPaired: () => void }> = ({ onPaired }) 
                 value={partnerName}
                 onChange={(e) => setPartnerName(e.target.value)}
                 placeholder="e.g. Vrishti"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-warmgray-200 bg-champagne-50/40 text-xs focus:outline-none focus:ring-2 focus:ring-rose-400"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-warmgray-200 dark:border-rose-900/50 bg-champagne-50/40 dark:bg-[#251d30] text-xs text-warmgray-900 dark:text-warmgray-100 placeholder-warmgray-400 dark:placeholder-warmgray-500 focus:outline-none focus:ring-2 focus:ring-rose-400"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-warmgray-700 mb-1 flex items-center gap-1.5">
+              <label className="block text-xs font-semibold text-warmgray-700 dark:text-warmgray-300 mb-1 flex items-center gap-1.5">
                 <Key className="w-3.5 h-3.5 text-rose-500" /> Couple Invite Code
               </label>
               <input
@@ -89,10 +89,10 @@ export const PairingScreen: React.FC<{ onPaired: () => void }> = ({ onPaired }) 
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
                 placeholder={couple?.inviteCode || 'US-FOREVER-2024'}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-warmgray-200 bg-champagne-50/40 text-xs font-mono uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-400"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-warmgray-200 dark:border-rose-900/50 bg-champagne-50/40 dark:bg-[#251d30] text-xs font-mono uppercase tracking-wider text-warmgray-900 dark:text-warmgray-100 placeholder-warmgray-400 dark:placeholder-warmgray-500 focus:outline-none focus:ring-2 focus:ring-rose-400"
                 required
               />
-              <span className="block text-[10px] text-warmgray-400 mt-1">
+              <span className="block text-[10px] text-warmgray-400 dark:text-warmgray-400 mt-1">
                 Tip: Default demo code is <strong>{couple?.inviteCode || 'US-FOREVER-2024'}</strong>
               </span>
             </div>
@@ -108,7 +108,7 @@ export const PairingScreen: React.FC<{ onPaired: () => void }> = ({ onPaired }) 
             </div>
 
             <div className="text-center pt-2">
-              <span className="text-[11px] text-warmgray-400 flex items-center justify-center gap-1">
+              <span className="text-[11px] text-warmgray-400 dark:text-warmgray-400 flex items-center justify-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                 Protected & private to just the 2 of you
               </span>

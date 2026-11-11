@@ -108,26 +108,26 @@ export const ChatView: React.FC = () => {
     : messages;
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100dvh-11.5rem)] md:h-[calc(100vh-9.5rem)] flex flex-col bg-white/90 backdrop-blur-md rounded-3xl border border-rose-100 shadow-xl overflow-hidden animate-fade-in">
+    <div className="max-w-4xl mx-auto h-[calc(100dvh-11.5rem)] md:h-[calc(100vh-9.5rem)] flex flex-col bg-white/90 dark:bg-[#15111c]/90 backdrop-blur-md rounded-3xl border border-rose-100 dark:border-rose-900/40 shadow-xl overflow-hidden animate-fade-in transition-colors">
       {/* Chat Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-rose-100 bg-white/95">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-rose-100 dark:border-rose-900/40 bg-white/95 dark:bg-[#191322]/95 transition-colors">
         <div className="flex items-center gap-3">
           <div className="relative">
             <img
               src={partner.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'}
               alt={partner.name}
-              className="w-10 h-10 rounded-full object-cover border-2 border-rose-300 shadow-sm"
+              className="w-10 h-10 rounded-full object-cover border-2 border-rose-300 dark:border-rose-700 shadow-sm"
             />
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-[#191322] rounded-full" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h2 className="font-serif font-bold text-base text-warmgray-900">{partner.name}</h2>
+              <h2 className="font-serif font-bold text-base text-warmgray-900 dark:text-warmgray-100">{partner.name}</h2>
               <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
             </div>
-            <p className="text-xs text-warmgray-500 flex items-center gap-1">
+            <p className="text-xs text-warmgray-500 dark:text-warmgray-400 flex items-center gap-1">
               {partnerTyping ? (
-                <span className="text-rose-600 font-medium animate-pulse flex items-center gap-1">
+                <span className="text-rose-600 dark:text-rose-400 font-medium animate-pulse flex items-center gap-1">
                   <Sparkles className="w-3 h-3" /> typing a sweet message...
                 </span>
               ) : (
@@ -143,14 +143,14 @@ export const ChatView: React.FC = () => {
         {/* Right Search toggle */}
         <div className="flex items-center gap-2">
           {showSearch ? (
-            <div className="flex items-center gap-1.5 bg-rose-50/80 px-2.5 py-1 rounded-xl border border-rose-200">
-              <Search className="w-3.5 h-3.5 text-rose-600" />
+            <div className="flex items-center gap-1.5 bg-rose-50/80 dark:bg-[#251d30] px-2.5 py-1 rounded-xl border border-rose-200 dark:border-rose-900/50">
+              <Search className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search our messages..."
-                className="bg-transparent text-xs text-warmgray-800 placeholder-warmgray-400 focus:outline-none w-36 sm:w-48"
+                className="bg-transparent text-xs text-warmgray-800 dark:text-warmgray-100 placeholder-warmgray-400 dark:placeholder-warmgray-500 focus:outline-none w-36 sm:w-48"
                 autoFocus
               />
               <button
@@ -158,7 +158,7 @@ export const ChatView: React.FC = () => {
                   setShowSearch(false);
                   setSearchQuery('');
                 }}
-                className="text-warmgray-400 hover:text-warmgray-600 p-0.5"
+                className="text-warmgray-400 hover:text-warmgray-600 dark:hover:text-warmgray-200 p-0.5"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -166,7 +166,7 @@ export const ChatView: React.FC = () => {
           ) : (
             <button
               onClick={() => setShowSearch(true)}
-              className="p-2 text-warmgray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
+              className="p-2 text-warmgray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-xl transition"
               title="Search conversation"
             >
               <Search className="w-4 h-4" />
@@ -179,21 +179,21 @@ export const ChatView: React.FC = () => {
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-gradient-to-b from-[#fdfbf9] to-[#faf7f5]"
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-gradient-to-b from-[#fdfbf9] to-[#faf7f5] dark:from-[#130f1a] dark:to-[#0f0d14] transition-colors"
       >
         {searchQuery && (
-          <div className="text-center text-xs text-warmgray-500 bg-rose-50/60 py-1.5 rounded-lg mb-2">
+          <div className="text-center text-xs text-warmgray-500 dark:text-warmgray-300 bg-rose-50/60 dark:bg-[#20182a] py-1.5 rounded-lg mb-2 border border-rose-100 dark:border-rose-900/30">
             Found {filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'} matching "{searchQuery}"
           </div>
         )}
 
         {filteredMessages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
-            <div className="w-14 h-14 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mb-3">
-              <Heart className="w-7 h-7 fill-rose-100" />
+            <div className="w-14 h-14 bg-rose-50 dark:bg-rose-950/60 text-rose-500 dark:text-rose-400 rounded-full flex items-center justify-center mb-3">
+              <Heart className="w-7 h-7 fill-rose-100 dark:fill-rose-900/60" />
             </div>
-            <h3 className="font-serif font-bold text-lg text-warmgray-800">Our Private Love Journal</h3>
-            <p className="text-xs text-warmgray-500 max-w-xs mt-1">
+            <h3 className="font-serif font-bold text-lg text-warmgray-800 dark:text-warmgray-100">Our Private Love Journal</h3>
+            <p className="text-xs text-warmgray-500 dark:text-warmgray-400 max-w-xs mt-1">
               Every message here is encrypted between the two of you. Say something sweet to kick off today!
             </p>
           </div>
@@ -207,7 +207,7 @@ export const ChatView: React.FC = () => {
               <React.Fragment key={msg.id}>
                 {showDateHeader && (
                   <div className="flex items-center justify-center my-4">
-                    <span className="text-[11px] font-semibold text-warmgray-400 bg-white/80 border border-warmgray-200/60 px-3 py-1 rounded-full shadow-2xs">
+                    <span className="text-[11px] font-semibold text-warmgray-400 dark:text-warmgray-300 bg-white/80 dark:bg-[#20182a]/80 border border-warmgray-200/60 dark:border-rose-900/40 px-3 py-1 rounded-full shadow-2xs">
                       {formatDate(msg.createdAt)}
                     </span>
                   </div>
@@ -233,9 +233,9 @@ export const ChatView: React.FC = () => {
             <img
               src={partner.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'}
               alt={partner.name}
-              className="w-7 h-7 rounded-full object-cover border border-rose-200"
+              className="w-7 h-7 rounded-full object-cover border border-rose-200 dark:border-rose-800"
             />
-            <div className="bg-white border border-rose-100 px-3 py-2 rounded-2xl rounded-bl-xs flex items-center gap-1 shadow-xs">
+            <div className="bg-white dark:bg-[#20182a] border border-rose-100 dark:border-rose-900/40 px-3 py-2 rounded-2xl rounded-bl-xs flex items-center gap-1 shadow-xs">
               <span className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
               <span className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
               <span className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-bounce" />
@@ -250,7 +250,7 @@ export const ChatView: React.FC = () => {
       {showScrollBottom && (
         <button
           onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          className="absolute bottom-20 right-6 p-2 bg-white text-rose-600 rounded-full shadow-lg border border-rose-100 hover:bg-rose-50 transition"
+          className="absolute bottom-20 right-6 p-2 bg-white dark:bg-[#20182a] text-rose-600 dark:text-rose-400 rounded-full shadow-lg border border-rose-100 dark:border-rose-900/40 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition"
           title="Scroll to bottom"
         >
           <ChevronDown className="w-4 h-4" />
@@ -275,7 +275,7 @@ export const ChatView: React.FC = () => {
             <img src={zoomedImage} alt="Enlarged photo" className="max-h-[85vh] rounded-2xl object-contain shadow-2xl" />
             <button
               onClick={() => setZoomedImage(null)}
-              className="absolute -top-3 -right-3 p-2 bg-white text-warmgray-800 rounded-full shadow-lg hover:bg-rose-50"
+              className="absolute -top-3 -right-3 p-2 bg-white dark:bg-[#20182a] text-warmgray-800 dark:text-warmgray-100 rounded-full shadow-lg hover:bg-rose-50 dark:hover:bg-rose-950/60"
             >
               <X className="w-5 h-5" />
             </button>

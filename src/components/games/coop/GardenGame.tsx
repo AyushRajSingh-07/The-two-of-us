@@ -140,18 +140,18 @@ export const GardenGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-3xl p-6 md:p-8 border border-rose-100 shadow-xl animate-fade-in">
+    <div className="max-w-4xl mx-auto bg-white dark:bg-[#191422] rounded-3xl p-6 md:p-8 border border-rose-100 dark:border-rose-900/40 shadow-xl text-warmgray-900 dark:text-warmgray-100 animate-fade-in transition-colors">
       {/* Top Bar */}
-      <div className="flex items-center justify-between pb-4 border-b border-rose-100 mb-4">
+      <div className="flex items-center justify-between pb-4 border-b border-rose-100 dark:border-rose-900/40 mb-4">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs font-semibold text-warmgray-500 hover:text-rose-600 transition"
+          className="flex items-center gap-1.5 text-xs font-semibold text-warmgray-500 dark:text-warmgray-400 hover:text-rose-600 dark:hover:text-rose-400 transition"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Games
         </button>
 
-        <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-200">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+        <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-xl border border-emerald-200 dark:border-emerald-800">
+          <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
           <span>Our Blooming Flowers: {garden.plots.filter((p) => p.stage === 3).length}</span>
         </span>
       </div>
@@ -160,8 +160,8 @@ export const GardenGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       <SessionInviteBar sessionId={sessionId} gameTitle="Little Shared Garden" />
 
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-serif font-bold text-warmgray-900">Little Shared Garden</h2>
-        <p className="text-xs text-warmgray-500 mt-1 max-w-md mx-auto">
+        <h2 className="text-2xl font-serif font-bold text-warmgray-900 dark:text-warmgray-100">Little Shared Garden</h2>
+        <p className="text-xs text-warmgray-500 dark:text-warmgray-400 mt-1 max-w-md mx-auto">
           Plant seeds, water them together, and watch our private garden bloom and grow in real time!
         </p>
       </div>

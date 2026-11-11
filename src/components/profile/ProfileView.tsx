@@ -125,19 +125,19 @@ export const ProfileView: React.FC = () => {
   const displayedCheckedInAt = viewingOwn ? myCheckedInAt : partnerCheckedInAt;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-fade-in pb-12">
+    <div className="max-w-3xl mx-auto space-y-6 animate-fade-in pb-12 transition-colors">
       {/* Page Title & Profile Switcher Bar */}
-      <div className="bg-white/80 backdrop-blur-xs rounded-3xl p-6 border border-rose-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white/80 dark:bg-[#191422]/90 backdrop-blur-xs rounded-3xl p-6 border border-rose-100 dark:border-rose-900/40 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="p-1.5 bg-rose-100/70 text-rose-600 rounded-lg">
+            <span className="p-1.5 bg-rose-100/70 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400 rounded-lg">
               <Heart className="w-4 h-4 fill-rose-500" />
             </span>
-            <h1 className="text-xl sm:text-2xl font-serif font-bold text-warmgray-900">
+            <h1 className="text-xl sm:text-2xl font-serif font-bold text-warmgray-900 dark:text-warmgray-100">
               Profiles & Personas
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-warmgray-500">
+          <p className="text-xs sm:text-sm text-warmgray-500 dark:text-warmgray-400">
             Personalize your photo, romantic bio, and display name for our private website.
           </p>
         </div>
@@ -145,7 +145,7 @@ export const ProfileView: React.FC = () => {
         {/* Switch Persona / Account Button */}
         <button
           onClick={switchActiveUser}
-          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition shadow-2xs"
+          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 rounded-xl transition shadow-2xs"
         >
           <ArrowLeftRight className="w-3.5 h-3.5" />
           <span>Switch view to {partner.name}</span>
@@ -153,13 +153,13 @@ export const ProfileView: React.FC = () => {
       </div>
 
       {/* Tabs: Viewing My Profile vs Partner's Profile */}
-      <div className="flex items-center justify-center p-1.5 bg-rose-100/50 rounded-2xl max-w-md mx-auto border border-rose-200/50">
+      <div className="flex items-center justify-center p-1.5 bg-rose-100/50 dark:bg-[#1f1729] rounded-2xl max-w-md mx-auto border border-rose-200/50 dark:border-rose-900/40">
         <button
           onClick={() => setActiveTab('mine')}
           className={`flex-1 py-2 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
             viewingOwn
-              ? 'bg-white text-rose-700 shadow-sm'
-              : 'text-warmgray-600 hover:text-rose-600'
+              ? 'bg-white dark:bg-[#2c223a] text-rose-700 dark:text-rose-300 shadow-sm'
+              : 'text-warmgray-600 dark:text-warmgray-400 hover:text-rose-600 dark:hover:text-rose-300'
           }`}
         >
           <User className="w-4 h-4" />
@@ -170,8 +170,8 @@ export const ProfileView: React.FC = () => {
           onClick={() => setActiveTab('partner')}
           className={`flex-1 py-2 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
             !viewingOwn
-              ? 'bg-white text-rose-700 shadow-sm'
-              : 'text-warmgray-600 hover:text-rose-600'
+              ? 'bg-white dark:bg-[#2c223a] text-rose-700 dark:text-rose-300 shadow-sm'
+              : 'text-warmgray-600 dark:text-warmgray-400 hover:text-rose-600 dark:hover:text-rose-300'
           }`}
         >
           <Heart className="w-4 h-4 text-rose-400" />
@@ -181,13 +181,13 @@ export const ProfileView: React.FC = () => {
 
       {/* Permissions Notification Alert */}
       {!viewingOwn && (
-        <div className="p-4 bg-amber-50/90 border border-amber-200/80 rounded-2xl flex items-start gap-3 text-amber-800 text-xs sm:text-sm">
-          <Lock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="p-4 bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 rounded-2xl flex items-start gap-3 text-amber-800 dark:text-amber-200 text-xs sm:text-sm">
+          <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">
               You are viewing {partner.name}&apos;s personal profile (Read-only)
             </p>
-            <p className="text-amber-700 text-xs mt-0.5">
+            <p className="text-amber-700 dark:text-amber-300 text-xs mt-0.5">
               To keep each account private, each person can only edit their own profile picture, display name, and bio.
               To make changes to this profile, click &ldquo;Switch view to {partner.name}&rdquo;.
             </p>
@@ -196,11 +196,11 @@ export const ProfileView: React.FC = () => {
       )}
 
       {/* Main Profile Card */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-rose-100 shadow-sm relative overflow-hidden">
+      <div className="bg-white dark:bg-[#191422] rounded-3xl p-6 sm:p-8 border border-rose-100 dark:border-rose-900/40 shadow-sm relative overflow-hidden transition-colors">
         {/* Glow backdrop */}
-        <div className="absolute -top-16 -right-16 w-44 h-44 bg-rose-100/60 rounded-full blur-3xl -z-0 pointer-events-none" />
+        <div className="absolute -top-16 -right-16 w-44 h-44 bg-rose-100/60 dark:bg-rose-950/40 rounded-full blur-3xl -z-0 pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-6 pb-6 border-b border-rose-100">
+        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-6 pb-6 border-b border-rose-100 dark:border-rose-900/40">
           {/* Avatar Section */}
           <div className="flex flex-col items-center text-center">
             <div className="relative group">
@@ -208,10 +208,10 @@ export const ProfileView: React.FC = () => {
                 <img
                   src={displayedAvatar}
                   alt={displayedName}
-                  className="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white ring-4 ring-rose-200 shadow-md"
+                  className="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white dark:border-[#251d30] ring-4 ring-rose-200 dark:ring-rose-800 shadow-md"
                 />
               ) : (
-                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-rose-200 to-rose-400 text-white flex items-center justify-center font-serif font-bold text-3xl border-4 border-white ring-4 ring-rose-200 shadow-md">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-rose-200 to-rose-400 text-white flex items-center justify-center font-serif font-bold text-3xl border-4 border-white dark:border-[#251d30] ring-4 ring-rose-200 dark:ring-rose-800 shadow-md">
                   {displayedName.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -240,12 +240,12 @@ export const ProfileView: React.FC = () => {
             {/* Check-in status pill */}
             <div className="mt-3">
               {displayedCheckedIn ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-full border border-emerald-200 dark:border-emerald-800">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   Checked in today ({formatKolkataTime(displayedCheckedInAt)} IST)
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-full border border-amber-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-xs font-semibold rounded-full border border-amber-200 dark:border-amber-800">
                   <span className="w-2 h-2 rounded-full bg-amber-400" />
                   Waiting for check-in today
                 </span>
@@ -257,24 +257,24 @@ export const ProfileView: React.FC = () => {
           <div className="flex-1 text-center md:text-left space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h2 className="font-serif font-bold text-2xl text-warmgray-900">
+                <h2 className="font-serif font-bold text-2xl text-warmgray-900 dark:text-warmgray-100">
                   {displayedName}
                 </h2>
-                <span className="text-xs font-medium text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100">
+                <span className="text-xs font-medium text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 px-2.5 py-0.5 rounded-full border border-rose-100 dark:border-rose-900/40">
                   {viewingOwn ? (isP1 ? 'Partner 1 • Ayush' : 'Partner 2 • Vrishti') : (isP1 ? 'Partner 2 • Vrishti' : 'Partner 1 • Ayush')}
                 </span>
               </div>
 
               {/* Shared Love Days Badge */}
-              <div className="inline-flex items-center gap-1 px-3 py-1 bg-rose-50 rounded-xl border border-rose-200/60 self-center sm:self-start">
-                <Sparkles className="w-3.5 h-3.5 text-rose-500" />
-                <span className="text-xs font-bold text-rose-800">
+              <div className="inline-flex items-center gap-1 px-3 py-1 bg-rose-50 dark:bg-rose-950/60 rounded-xl border border-rose-200/60 dark:border-rose-900/40 self-center sm:self-start">
+                <Sparkles className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
+                <span className="text-xs font-bold text-rose-800 dark:text-rose-200">
                   {dailyCounter.sharedCount} Love Days
                 </span>
               </div>
             </div>
 
-            <p className="text-sm text-warmgray-600 italic bg-rose-50/40 p-3 rounded-2xl border border-rose-100/60 mt-2">
+            <p className="text-sm text-warmgray-600 dark:text-warmgray-300 italic bg-rose-50/40 dark:bg-[#20182a] p-3 rounded-2xl border border-rose-100/60 dark:border-rose-900/40 mt-2">
               &ldquo;{displayedBio || 'A quiet corner just for us.'}&rdquo;
             </p>
           </div>
@@ -282,16 +282,16 @@ export const ProfileView: React.FC = () => {
 
         {/* Live Photo Preview Controls (Shown when new photo or preset is selected before saving) */}
         {viewingOwn && previewAvatar !== null && (
-          <div className="mt-6 p-4 bg-rose-50 rounded-2xl border border-rose-200 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in">
+          <div className="mt-6 p-4 bg-rose-50 dark:bg-rose-950/50 rounded-2xl border border-rose-200 dark:border-rose-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in">
             <div className="flex items-center gap-3">
-              <span className="p-2 bg-rose-200/60 text-rose-700 rounded-xl">
+              <span className="p-2 bg-rose-200/60 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300 rounded-xl">
                 <ImageIcon className="w-4 h-4" />
               </span>
               <div>
-                <h4 className="text-xs sm:text-sm font-bold text-rose-900">
+                <h4 className="text-xs sm:text-sm font-bold text-rose-900 dark:text-rose-200">
                   Profile Picture Preview
                 </h4>
-                <p className="text-xs text-rose-700">
+                <p className="text-xs text-rose-700 dark:text-rose-300">
                   Review how your photo looks above, then click &ldquo;Save Profile Changes&rdquo; below to confirm.
                 </p>
               </div>
@@ -301,7 +301,7 @@ export const ProfileView: React.FC = () => {
               <button
                 type="button"
                 onClick={handleCancelPreview}
-                className="px-3 py-1.5 text-xs font-semibold text-warmgray-600 hover:text-warmgray-800 bg-white border border-warmgray-200 rounded-xl transition"
+                className="px-3 py-1.5 text-xs font-semibold text-warmgray-600 dark:text-warmgray-300 hover:text-warmgray-800 dark:hover:text-white bg-white dark:bg-[#2c223a] border border-warmgray-200 dark:border-rose-900/50 rounded-xl transition"
               >
                 Revert
               </button>
@@ -311,14 +311,14 @@ export const ProfileView: React.FC = () => {
 
         {/* Success & Error messages */}
         {saveSuccess && (
-          <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-emerald-800 text-xs sm:text-sm font-medium animate-fade-in">
-            <Check className="w-4 h-4 text-emerald-600" />
+          <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-2 text-emerald-800 dark:text-emerald-200 text-xs sm:text-sm font-medium animate-fade-in">
+            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>Profile successfully updated! Your changes are synced across games, chat, and all pages.</span>
           </div>
         )}
 
         {errorMessage && (
-          <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs sm:text-sm">
+          <div className="mt-4 p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 text-xs sm:text-sm">
             {errorMessage}
           </div>
         )}
@@ -328,7 +328,7 @@ export const ProfileView: React.FC = () => {
           <form onSubmit={handleSaveProfile} className="mt-6 space-y-5">
             {/* Display Name Input */}
             <div>
-              <label className="block text-xs font-bold text-warmgray-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-warmgray-700 dark:text-warmgray-300 uppercase tracking-wider mb-1.5">
                 Display Name
               </label>
               <input
@@ -336,9 +336,9 @@ export const ProfileView: React.FC = () => {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="e.g. Ayush or Vrishti"
-                className="w-full px-4 py-2.5 rounded-2xl border border-warmgray-200 bg-warmgray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition"
+                className="w-full px-4 py-2.5 rounded-2xl border border-warmgray-200 dark:border-rose-900/40 bg-warmgray-50/50 dark:bg-[#251d30] text-warmgray-900 dark:text-warmgray-100 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white dark:focus:bg-[#2c223a] transition"
               />
-              <p className="text-[11px] text-warmgray-500 mt-1">
+              <p className="text-[11px] text-warmgray-500 dark:text-warmgray-400 mt-1">
                 This name appears in chat, game turns, leaderboards, and invites.
               </p>
             </div>
@@ -346,14 +346,14 @@ export const ProfileView: React.FC = () => {
             {/* Profile Picture Options */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-warmgray-700 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-warmgray-700 dark:text-warmgray-300 uppercase tracking-wider">
                   Choose or Upload Picture
                 </label>
                 {myAvatar && (
                   <button
                     type="button"
                     onClick={handleRemoveAvatar}
-                    className="text-xs text-rose-600 hover:text-rose-800 flex items-center gap-1 font-medium transition"
+                    className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 flex items-center gap-1 font-medium transition"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Remove Picture</span>
@@ -366,7 +366,7 @@ export const ProfileView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition"
+                  className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 rounded-xl transition"
                 >
                   <Camera className="w-3.5 h-3.5" />
                   <span>Upload from Computer / Phone</span>
@@ -383,8 +383,8 @@ export const ProfileView: React.FC = () => {
                     onClick={() => handleSelectPreset(presetUrl)}
                     className={`relative flex-shrink-0 w-12 h-12 rounded-full overflow-hidden border-2 transition-all hover:scale-105 ${
                       (previewAvatar === presetUrl || (!previewAvatar && myAvatar === presetUrl))
-                        ? 'border-rose-600 ring-2 ring-rose-300'
-                        : 'border-warmgray-200 hover:border-rose-300'
+                        ? 'border-rose-600 ring-2 ring-rose-300 dark:ring-rose-800'
+                        : 'border-warmgray-200 dark:border-rose-900/40 hover:border-rose-300'
                     }`}
                   >
                     <img src={presetUrl} alt="Preset avatar" className="w-full h-full object-cover" />
@@ -395,7 +395,7 @@ export const ProfileView: React.FC = () => {
 
             {/* Romantic Bio / Status */}
             <div>
-              <label className="block text-xs font-bold text-warmgray-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-warmgray-700 dark:text-warmgray-300 uppercase tracking-wider mb-1.5">
                 Personal Bio & Note
               </label>
               <textarea
@@ -403,16 +403,16 @@ export const ProfileView: React.FC = () => {
                 onChange={(e) => setBio(e.target.value)}
                 rows={3}
                 placeholder="Share a sweet thought, your nickname for your partner, or what makes you smile..."
-                className="w-full px-4 py-2.5 rounded-2xl border border-warmgray-200 bg-warmgray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition"
+                className="w-full px-4 py-2.5 rounded-2xl border border-warmgray-200 dark:border-rose-900/40 bg-warmgray-50/50 dark:bg-[#251d30] text-warmgray-900 dark:text-warmgray-100 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white dark:focus:bg-[#2c223a] transition"
               />
             </div>
 
             {/* Manual Checkin Button if Pending */}
             {!myCheckedIn && (
-              <div className="p-4 bg-rose-50/70 border border-rose-200 rounded-2xl flex items-center justify-between gap-3">
+              <div className="p-4 bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 rounded-2xl flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <Calendar className="w-4 h-4 text-rose-600" />
-                  <span className="text-xs font-medium text-warmgray-700">
+                  <Calendar className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                  <span className="text-xs font-medium text-warmgray-700 dark:text-warmgray-300">
                     Haven&apos;t checked in today yet? Click to record your daily login.
                   </span>
                 </div>
@@ -443,26 +443,26 @@ export const ProfileView: React.FC = () => {
         ) : (
           /* Partner's profile view (Read-only + Sweet interactions) */
           <div className="mt-6 space-y-4">
-            <div className="p-4 bg-rose-50/60 rounded-2xl border border-rose-100 space-y-2">
-              <h4 className="text-xs font-bold text-rose-900 uppercase tracking-wider">
+            <div className="p-4 bg-rose-50/60 dark:bg-[#20182a] rounded-2xl border border-rose-100 dark:border-rose-900/40 space-y-2">
+              <h4 className="text-xs font-bold text-rose-900 dark:text-rose-300 uppercase tracking-wider">
                 About {partner.name}
               </h4>
-              <p className="text-sm text-warmgray-700">
+              <p className="text-sm text-warmgray-700 dark:text-warmgray-300">
                 {displayedBio || 'No bio written yet.'}
               </p>
             </div>
 
-            <div className="p-4 bg-champagne-50/60 rounded-2xl border border-champagne-200 flex items-center justify-between">
+            <div className="p-4 bg-champagne-50/60 dark:bg-[#241a2e] rounded-2xl border border-champagne-200 dark:border-rose-900/40 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
-                <span className="text-xs font-medium text-warmgray-800">
+                <span className="text-xs font-medium text-warmgray-800 dark:text-warmgray-200">
                   Want to update {partner.name}&apos;s profile?
                 </span>
               </div>
               <button
                 type="button"
                 onClick={switchActiveUser}
-                className="px-3.5 py-1.5 text-xs font-bold text-rose-700 bg-white border border-rose-200 rounded-xl hover:bg-rose-50 transition"
+                className="px-3.5 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 bg-white dark:bg-[#2c223a] border border-rose-200 dark:border-rose-900/50 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/60 transition"
               >
                 Switch to {partner.name}
               </button>

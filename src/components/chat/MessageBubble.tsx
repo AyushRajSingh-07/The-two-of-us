@@ -54,7 +54,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     >
       {/* Sender name for received messages */}
       {!isMe && (
-        <span className="text-[11px] font-medium text-warmgray-500 mb-1 ml-11">
+        <span className="text-[11px] font-medium text-warmgray-500 dark:text-warmgray-400 mb-1 ml-11">
           {message.senderName}
         </span>
       )}
@@ -64,7 +64,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         <img
           src={message.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
           alt={message.senderName}
-          className="w-8 h-8 rounded-full object-cover border border-rose-200 shadow-xs flex-shrink-0"
+          className="w-8 h-8 rounded-full object-cover border border-rose-200 dark:border-rose-800 shadow-xs flex-shrink-0"
         />
 
         {/* Bubble Container */}
@@ -74,7 +74,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             className={`rounded-2xl px-4 py-2.5 shadow-sm transition-all text-sm leading-relaxed cursor-pointer select-text ${
               isMe
                 ? 'bg-gradient-to-br from-rose-500 to-rose-600 text-white rounded-br-sm'
-                : 'bg-white border border-rose-100 text-warmgray-800 rounded-bl-sm'
+                : 'bg-white dark:bg-[#20182a] border border-rose-100 dark:border-rose-900/40 text-warmgray-800 dark:text-warmgray-100 rounded-bl-sm'
             }`}
           >
             {/* Replied Message Preview */}
@@ -83,7 +83,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 className={`mb-2 p-2 rounded-xl text-xs border-l-2 ${
                   isMe
                     ? 'bg-rose-700/50 border-white/80 text-rose-100'
-                    : 'bg-rose-50 border-rose-400 text-warmgray-600'
+                    : 'bg-rose-50 dark:bg-rose-950/60 border-rose-400 dark:border-rose-500 text-warmgray-600 dark:text-warmgray-300'
                 }`}
               >
                 <span className="font-semibold">{message.replyToSender || 'Partner'}:</span>{' '}
@@ -109,20 +109,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   type="text"
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
-                  className="px-2.5 py-1 rounded-lg text-sm bg-white text-warmgray-800 border border-rose-300 focus:outline-none"
+                  className="px-2.5 py-1 rounded-lg text-sm bg-white dark:bg-[#2c223a] text-warmgray-800 dark:text-warmgray-100 border border-rose-300 dark:border-rose-700 focus:outline-none"
                   autoFocus
                 />
                 <div className="flex gap-2 justify-end">
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="text-[11px] opacity-80 hover:opacity-100 underline"
+                    className="text-[11px] opacity-80 hover:opacity-100 underline text-warmgray-500 dark:text-warmgray-300"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="text-[11px] font-bold bg-white text-rose-600 px-2 py-0.5 rounded shadow-xs"
+                    className="text-[11px] font-bold bg-white dark:bg-[#342745] text-rose-600 dark:text-rose-300 px-2 py-0.5 rounded shadow-xs"
                   >
                     Save
                   </button>
@@ -142,7 +142,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {/* Footer with Timestamp & Status ticks */}
             <div
               className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
-                isMe ? 'text-rose-200' : 'text-warmgray-400'
+                isMe ? 'text-rose-200' : 'text-warmgray-400 dark:text-warmgray-400'
               }`}
             >
               <span>{formatTime(message.createdAt)}</span>
@@ -167,8 +167,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     onClick={() => onReact(message.id, emoji)}
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border shadow-xs transition ${
                       hasReacted
-                        ? 'bg-rose-50 border-rose-300 text-rose-700 font-semibold'
-                        : 'bg-white border-warmgray-200 text-warmgray-600 hover:bg-rose-50/50'
+                        ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 font-semibold'
+                        : 'bg-white dark:bg-[#231a2e] border-warmgray-200 dark:border-rose-900/40 text-warmgray-600 dark:text-warmgray-300 hover:bg-rose-50/50 dark:hover:bg-rose-950/50'
                     }`}
                   >
                     <span>{emoji}</span>
@@ -182,7 +182,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {/* Action Toolbar (Visible on hover on desktop, or tap on mobile) */}
           {isHovered && !isEditing && (
             <div
-              className={`absolute top-0 transform -translate-y-1/2 flex items-center gap-1 bg-white border border-rose-200 shadow-lg rounded-full px-2 py-1 z-20 animate-fade-in ${
+              className={`absolute top-0 transform -translate-y-1/2 flex items-center gap-1 bg-white dark:bg-[#221a2c] border border-rose-200 dark:border-rose-900/60 shadow-lg rounded-full px-2 py-1 z-20 animate-fade-in ${
                 isMe ? 'right-0' : 'left-0'
               }`}
             >
@@ -192,7 +192,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   e.stopPropagation();
                   setShowReactionPicker(!showReactionPicker);
                 }}
-                className="w-8 h-8 flex items-center justify-center text-warmgray-500 hover:text-rose-600 active:bg-rose-50 rounded-full transition"
+                className="w-8 h-8 flex items-center justify-center text-warmgray-500 dark:text-warmgray-400 hover:text-rose-600 dark:hover:text-rose-300 active:bg-rose-50 dark:active:bg-rose-950/60 rounded-full transition"
                 title="React"
               >
                 <Smile className="w-4 h-4" />
@@ -205,7 +205,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   onReply(message);
                   setIsHovered(false);
                 }}
-                className="w-8 h-8 flex items-center justify-center text-warmgray-500 hover:text-rose-600 active:bg-rose-50 rounded-full transition"
+                className="w-8 h-8 flex items-center justify-center text-warmgray-500 dark:text-warmgray-400 hover:text-rose-600 dark:hover:text-rose-300 active:bg-rose-50 dark:active:bg-rose-950/60 rounded-full transition"
                 title="Reply"
               >
                 <Reply className="w-4 h-4" />
@@ -221,7 +221,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       setIsEditing(true);
                       setIsHovered(false);
                     }}
-                    className="w-8 h-8 flex items-center justify-center text-warmgray-500 hover:text-rose-600 active:bg-rose-50 rounded-full transition"
+                    className="w-8 h-8 flex items-center justify-center text-warmgray-500 dark:text-warmgray-400 hover:text-rose-600 dark:hover:text-rose-300 active:bg-rose-50 dark:active:bg-rose-950/60 rounded-full transition"
                     title="Edit"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -233,7 +233,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       onDelete(message.id);
                       setIsHovered(false);
                     }}
-                    className="w-8 h-8 flex items-center justify-center text-warmgray-500 hover:text-rose-600 active:bg-rose-50 rounded-full transition"
+                    className="w-8 h-8 flex items-center justify-center text-warmgray-500 dark:text-warmgray-400 hover:text-rose-600 dark:hover:text-rose-300 active:bg-rose-50 dark:active:bg-rose-950/60 rounded-full transition"
                     title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -246,7 +246,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {/* Floating Reaction Picker */}
           {showReactionPicker && (
             <div
-              className={`absolute top-0 transform -translate-y-full mb-1 flex items-center gap-1 bg-white border border-rose-100 shadow-lg rounded-full px-2.5 py-1 z-30 ${
+              className={`absolute top-0 transform -translate-y-full mb-1 flex items-center gap-1 bg-white dark:bg-[#221a2c] border border-rose-100 dark:border-rose-900/60 shadow-lg rounded-full px-2.5 py-1 z-30 ${
                 isMe ? 'right-0' : 'left-0'
               }`}
             >
@@ -264,7 +264,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               ))}
               <button
                 onClick={() => setShowReactionPicker(false)}
-                className="p-1 text-warmgray-300 hover:text-warmgray-600"
+                className="p-1 text-warmgray-300 hover:text-warmgray-600 dark:hover:text-warmgray-200"
               >
                 <X className="w-3 h-3" />
               </button>

@@ -82,17 +82,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   }, []);
 
   return (
-    <div className="relative border-t border-rose-100 bg-white/95 backdrop-blur-md p-3 md:p-4 rounded-b-3xl">
+    <div className="relative border-t border-rose-100 dark:border-rose-900/40 bg-white/95 dark:bg-[#191322]/95 backdrop-blur-md p-3 md:p-4 rounded-b-3xl transition-colors">
       {/* Reply Banner */}
       {replyToMessage && (
-        <div className="flex items-center justify-between bg-rose-50/80 px-3 py-2 rounded-xl mb-2 text-xs border-l-4 border-rose-500">
+        <div className="flex items-center justify-between bg-rose-50/80 dark:bg-rose-950/60 px-3 py-2 rounded-xl mb-2 text-xs border-l-4 border-rose-500">
           <div className="truncate pr-2">
-            <span className="font-semibold text-rose-800">Replying to {replyToMessage.senderName}:</span>{' '}
-            <span className="text-warmgray-600 truncate">{replyToMessage.text || 'Photo'}</span>
+            <span className="font-semibold text-rose-800 dark:text-rose-200">Replying to {replyToMessage.senderName}:</span>{' '}
+            <span className="text-warmgray-600 dark:text-warmgray-300 truncate">{replyToMessage.text || 'Photo'}</span>
           </div>
           <button
             onClick={onCancelReply}
-            className="p-1 text-warmgray-400 hover:text-warmgray-700 rounded-full"
+            className="p-1 text-warmgray-400 dark:text-warmgray-400 hover:text-warmgray-700 dark:hover:text-warmgray-200 rounded-full"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -105,7 +105,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <img
             src={imageUrl}
             alt="Upload preview"
-            className="h-20 w-20 object-cover rounded-xl border border-rose-200 shadow-sm"
+            className="h-20 w-20 object-cover rounded-xl border border-rose-200 dark:border-rose-800 shadow-sm"
           />
           <button
             onClick={() => setImageUrl(null)}
@@ -118,13 +118,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       {/* Emoji Picker Dropdown */}
       {showEmojiPicker && (
-        <div className="absolute bottom-16 left-4 z-50 bg-white p-3 rounded-2xl shadow-xl border border-rose-100 grid grid-cols-7 gap-2 animate-scale-up">
+        <div className="absolute bottom-16 left-4 z-50 bg-white dark:bg-[#221a2c] p-3 rounded-2xl shadow-xl border border-rose-100 dark:border-rose-900/50 grid grid-cols-7 gap-2 animate-scale-up">
           {COMMON_EMOJIS.map((emoji) => (
             <button
               key={emoji}
               type="button"
               onClick={() => handleAddEmoji(emoji)}
-              className="text-xl p-1.5 hover:bg-rose-50 rounded-lg transition transform hover:scale-125"
+              className="text-xl p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-lg transition transform hover:scale-125"
             >
               {emoji}
             </button>
@@ -139,7 +139,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           type="button"
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           className={`p-2.5 rounded-xl transition ${
-            showEmojiPicker ? 'text-rose-600 bg-rose-50' : 'text-warmgray-400 hover:text-rose-600 hover:bg-rose-50'
+            showEmojiPicker ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60' : 'text-warmgray-400 dark:text-warmgray-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60'
           }`}
           title="Insert emoji"
         >
@@ -151,7 +151,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploadingImage}
-          className="p-2.5 text-warmgray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
+          className="p-2.5 text-warmgray-400 dark:text-warmgray-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-xl transition"
           title="Attach photo"
         >
           <Image className="w-5 h-5" />
@@ -170,7 +170,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           value={text}
           onChange={handleTextChange}
           placeholder="Write a sweet message..."
-          className="flex-1 px-4 py-2.5 bg-champagne-50/50 hover:bg-white focus:bg-white border border-rose-200/80 rounded-2xl text-sm text-warmgray-800 placeholder-warmgray-400 focus:outline-none focus:ring-2 focus:ring-rose-400 transition"
+          className="flex-1 px-4 py-2.5 bg-champagne-50/50 dark:bg-[#251d30] hover:bg-white dark:hover:bg-[#2c223a] focus:bg-white dark:focus:bg-[#2c223a] border border-rose-200/80 dark:border-rose-900/50 rounded-2xl text-sm text-warmgray-800 dark:text-warmgray-100 placeholder-warmgray-400 dark:placeholder-warmgray-500 focus:outline-none focus:ring-2 focus:ring-rose-400 transition"
         />
 
         {/* Send Button */}

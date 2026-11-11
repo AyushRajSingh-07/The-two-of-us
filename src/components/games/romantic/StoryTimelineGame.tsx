@@ -109,27 +109,27 @@ export const StoryTimelineGame: React.FC<{ onBack: () => void }> = ({ onBack }) 
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 md:p-8 border border-rose-100 shadow-xl animate-fade-in">
+    <div className="max-w-3xl mx-auto bg-white dark:bg-[#191422] rounded-3xl p-6 md:p-8 border border-rose-100 dark:border-rose-900/40 shadow-xl text-warmgray-900 dark:text-warmgray-100 animate-fade-in transition-colors">
       {/* Top Bar */}
-      <div className="flex items-center justify-between pb-4 border-b border-rose-100 mb-6">
+      <div className="flex items-center justify-between pb-4 border-b border-rose-100 dark:border-rose-900/40 mb-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs font-semibold text-warmgray-500 hover:text-rose-600 transition"
+          className="flex items-center gap-1.5 text-xs font-semibold text-warmgray-500 dark:text-warmgray-400 hover:text-rose-600 dark:hover:text-rose-400 transition"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Games
         </button>
 
         <button
           onClick={handleReset}
-          className="flex items-center gap-1 text-xs text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200 transition"
+          className="flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/50 transition"
         >
           <RotateCcw className="w-3.5 h-3.5" /> Reshuffle
         </button>
       </div>
 
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-serif font-bold text-warmgray-900">Our Story Timeline</h2>
-        <p className="text-xs text-warmgray-500 mt-1 max-w-md mx-auto">
+        <h2 className="text-2xl font-serif font-bold text-warmgray-900 dark:text-warmgray-100">Our Story Timeline</h2>
+        <p className="text-xs text-warmgray-500 dark:text-warmgray-400 mt-1 max-w-md mx-auto">
           Can you arrange our relationship milestones into the exact chronological order from first to latest?
         </p>
       </div>

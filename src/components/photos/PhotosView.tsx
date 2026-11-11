@@ -63,19 +63,19 @@ export const PhotosView: React.FC = () => {
   const activePhoto = activePhotoIndex !== null ? filteredPhotos[activePhotoIndex] : null;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-20 animate-fade-in">
+    <div className="max-w-6xl mx-auto space-y-6 pb-20 animate-fade-in transition-colors">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-rose-100/70 via-champagne-100/60 to-rose-50/70 rounded-3xl p-6 sm:p-8 border border-rose-200/60 shadow-sm relative overflow-hidden">
+      <div className="bg-gradient-to-r from-rose-100/70 via-champagne-100/60 to-rose-50/70 dark:from-[#231b2e] dark:via-[#1e1628] dark:to-[#251a2d] rounded-3xl p-6 sm:p-8 border border-rose-200/60 dark:border-rose-900/50 shadow-sm relative overflow-hidden transition-colors">
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-rose-700 tracking-wider uppercase mb-1">
+            <div className="flex items-center gap-2 text-xs font-semibold text-rose-700 dark:text-rose-300 tracking-wider uppercase mb-1">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Private Keepsake</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-warmgray-900">
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-warmgray-900 dark:text-warmgray-100">
               Our Shared Memories
             </h1>
-            <p className="text-sm text-warmgray-600 mt-1">
+            <p className="text-sm text-warmgray-600 dark:text-warmgray-400 mt-1">
               A private collection of our adventures, date nights, and candid moments.
             </p>
           </div>
@@ -101,7 +101,7 @@ export const PhotosView: React.FC = () => {
               className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
                 selectedAlbum === tab
                   ? 'bg-rose-600 text-white shadow-sm'
-                  : 'bg-white hover:bg-rose-50 text-warmgray-600 border border-warmgray-200/80'
+                  : 'bg-white dark:bg-[#1f1729] hover:bg-rose-50 dark:hover:bg-[#2c223a] text-warmgray-600 dark:text-warmgray-300 border border-warmgray-200/80 dark:border-rose-900/40'
               }`}
             >
               {tab}
@@ -117,19 +117,19 @@ export const PhotosView: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search our memories..."
-            className="w-full pl-9 pr-4 py-2 bg-white border border-warmgray-200 rounded-xl text-xs text-warmgray-800 placeholder-warmgray-400 focus:outline-none focus:ring-2 focus:ring-rose-400"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#1f1729] border border-warmgray-200 dark:border-rose-900/40 rounded-xl text-xs text-warmgray-800 dark:text-warmgray-100 placeholder-warmgray-400 dark:placeholder-warmgray-500 focus:outline-none focus:ring-2 focus:ring-rose-400"
           />
         </div>
       </div>
 
       {/* Photos Grid */}
       {filteredPhotos.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-rose-100 p-12 text-center max-w-md mx-auto shadow-sm">
-          <div className="w-14 h-14 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-3">
+        <div className="bg-white dark:bg-[#191422] rounded-3xl border border-rose-100 dark:border-rose-900/40 p-12 text-center max-w-md mx-auto shadow-sm">
+          <div className="w-14 h-14 bg-rose-50 dark:bg-rose-950/60 text-rose-500 dark:text-rose-400 rounded-full flex items-center justify-center mx-auto mb-3">
             <ImageIcon className="w-7 h-7" />
           </div>
-          <h3 className="font-serif font-bold text-lg text-warmgray-800">No photos found</h3>
-          <p className="text-xs text-warmgray-500 mt-1 mb-4">
+          <h3 className="font-serif font-bold text-lg text-warmgray-800 dark:text-warmgray-100">No photos found</h3>
+          <p className="text-xs text-warmgray-500 dark:text-warmgray-400 mt-1 mb-4">
             {searchQuery
               ? 'Try adjusting your search query or album filter.'
               : 'Upload your first couple photo together to start filling this gallery!'}
@@ -147,10 +147,10 @@ export const PhotosView: React.FC = () => {
             <div
               key={photo.id}
               onClick={() => setActivePhotoIndex(index)}
-              className="group bg-white rounded-3xl overflow-hidden border border-rose-100/80 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col"
+              className="group bg-white dark:bg-[#191422] rounded-3xl overflow-hidden border border-rose-100/80 dark:border-rose-900/40 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col"
             >
               {/* Photo Image */}
-              <div className="relative aspect-4/3 w-full overflow-hidden bg-warmgray-100">
+              <div className="relative aspect-4/3 w-full overflow-hidden bg-warmgray-100 dark:bg-[#251d30]">
                 <img
                   src={photo.url}
                   alt={photo.caption}
@@ -172,7 +172,7 @@ export const PhotosView: React.FC = () => {
                   className={`absolute top-3 right-3 p-2 rounded-full transition shadow-md ${
                     photo.isFavorite
                       ? 'bg-rose-600 text-white'
-                      : 'bg-white/80 hover:bg-white text-warmgray-600'
+                      : 'bg-white/80 dark:bg-black/60 hover:bg-white dark:hover:bg-black/80 text-warmgray-600 dark:text-warmgray-200'
                   }`}
                   title={photo.isFavorite ? 'Favorited' : 'Add to Favorites'}
                 >
@@ -180,17 +180,17 @@ export const PhotosView: React.FC = () => {
                 </button>
 
                 {/* Album Badge */}
-                <div className="absolute bottom-3 left-3 px-2.5 py-1 bg-white/90 backdrop-blur-md rounded-full text-[10px] font-bold text-rose-700 shadow-xs">
+                <div className="absolute bottom-3 left-3 px-2.5 py-1 bg-white/90 dark:bg-[#191422]/90 backdrop-blur-md rounded-full text-[10px] font-bold text-rose-700 dark:text-rose-300 shadow-xs border border-rose-100/40 dark:border-rose-900/40">
                   {photo.album}
                 </div>
               </div>
 
               {/* Photo Details / Polaroid Style */}
               <div className="p-4 flex-1 flex flex-col justify-between">
-                <p className="font-serif text-sm text-warmgray-800 line-clamp-2 italic">
+                <p className="font-serif text-sm text-warmgray-800 dark:text-warmgray-200 line-clamp-2 italic">
                   "{photo.caption}"
                 </p>
-                <div className="flex items-center justify-between text-[11px] text-warmgray-400 mt-3 pt-2 border-t border-rose-50">
+                <div className="flex items-center justify-between text-[11px] text-warmgray-400 dark:text-warmgray-400 mt-3 pt-2 border-t border-rose-50 dark:border-rose-900/30">
                   <span>{formatDate(photo.dateTaken)}</span>
                   <span>by {photo.uploaderName}</span>
                 </div>

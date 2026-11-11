@@ -122,12 +122,12 @@ export const QuizGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 md:p-8 border border-rose-100 shadow-xl animate-fade-in">
+    <div className="max-w-3xl mx-auto bg-white dark:bg-[#191422] rounded-3xl p-6 md:p-8 border border-rose-100 dark:border-rose-900/40 shadow-xl text-warmgray-900 dark:text-warmgray-100 animate-fade-in transition-colors">
       {/* Top Bar */}
-      <div className="flex items-center justify-between pb-4 border-b border-rose-100 mb-6">
+      <div className="flex items-center justify-between pb-4 border-b border-rose-100 dark:border-rose-900/40 mb-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs font-semibold text-warmgray-500 hover:text-rose-600 transition"
+          className="flex items-center gap-1.5 text-xs font-semibold text-warmgray-500 dark:text-warmgray-400 hover:text-rose-600 dark:hover:text-rose-400 transition"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Games
         </button>
@@ -135,7 +135,7 @@ export const QuizGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsEditing(!isEditing)}
-            className="flex items-center gap-1 text-xs font-medium text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200 transition"
+            className="flex items-center gap-1 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/50 transition"
           >
             <Edit3 className="w-3.5 h-3.5" />
             <span>{isEditing ? 'Close Editor' : 'Edit / Add Questions'}</span>

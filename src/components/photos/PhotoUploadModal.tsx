@@ -112,29 +112,29 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-rose-100 p-6 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in transition-colors">
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#191422] rounded-3xl shadow-2xl border border-rose-100 dark:border-rose-900/50 p-6 overflow-hidden transition-colors">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-rose-100 mb-4">
+        <div className="flex items-center justify-between pb-3 border-b border-rose-100 dark:border-rose-900/40 mb-4">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
+            <div className="p-2 bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 rounded-xl">
               <ImageIcon className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-serif font-bold text-warmgray-800">Add to Our Gallery</h2>
-              <p className="text-xs text-warmgray-500">Capture a private memory forever</p>
+              <h2 className="text-lg font-serif font-bold text-warmgray-800 dark:text-warmgray-100">Add to Our Gallery</h2>
+              <p className="text-xs text-warmgray-500 dark:text-warmgray-400">Capture a private memory forever</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-warmgray-400 hover:text-warmgray-700 rounded-full"
+            className="p-1.5 text-warmgray-400 hover:text-warmgray-700 dark:hover:text-warmgray-200 rounded-full"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {errorMsg && (
-          <div className="p-2.5 mb-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
+          <div className="p-2.5 mb-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs rounded-xl">
             {errorMsg}
           </div>
         )}
@@ -146,15 +146,15 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-rose-200 hover:border-rose-400 bg-champagne-50/40 hover:bg-rose-50/40 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center gap-2"
+              className="border-2 border-dashed border-rose-200 dark:border-rose-900/60 hover:border-rose-400 bg-champagne-50/40 dark:bg-[#20182a]/60 hover:bg-rose-50/40 dark:hover:bg-[#261d32] rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center gap-2"
             >
-              <div className="p-3 bg-white text-rose-500 rounded-full shadow-sm">
+              <div className="p-3 bg-white dark:bg-[#2a2036] text-rose-500 dark:text-rose-400 rounded-full shadow-sm">
                 <Upload className="w-6 h-6" />
               </div>
-              <p className="text-sm font-semibold text-warmgray-700">
+              <p className="text-sm font-semibold text-warmgray-700 dark:text-warmgray-200">
                 Click or drag & drop a photo here
               </p>
-              <p className="text-[11px] text-warmgray-400">
+              <p className="text-[11px] text-warmgray-400 dark:text-warmgray-400">
                 JPG, PNG, WebP up to 10MB. Stored completely privately.
               </p>
               <input
@@ -166,7 +166,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
               />
             </div>
           ) : (
-            <div className="relative rounded-2xl overflow-hidden max-h-56 bg-black/5 flex items-center justify-center">
+            <div className="relative rounded-2xl overflow-hidden max-h-56 bg-black/5 dark:bg-black/30 flex items-center justify-center">
               <img src={previewUrl} alt="Upload preview" className="max-h-56 w-auto object-contain rounded-2xl" />
               <button
                 type="button"
@@ -183,7 +183,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
 
           {/* Caption */}
           <div>
-            <label className="block text-xs font-semibold text-warmgray-700 mb-1">
+            <label className="block text-xs font-semibold text-warmgray-700 dark:text-warmgray-300 mb-1">
               Sweet Caption / Memory Note
             </label>
             <input
@@ -191,25 +191,25 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               placeholder="Where was this? What made this moment special?"
-              className="w-full px-3.5 py-2 border border-warmgray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+              className="w-full px-3.5 py-2 border border-warmgray-200 dark:border-rose-900/40 bg-white dark:bg-[#251d30] text-warmgray-800 dark:text-warmgray-100 placeholder-warmgray-400 dark:placeholder-warmgray-500 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
             />
           </div>
 
           {/* Album & Date row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-warmgray-700 mb-1">Album / Collection</label>
+              <label className="block text-xs font-semibold text-warmgray-700 dark:text-warmgray-300 mb-1">Album / Collection</label>
               <select
                 value={album}
                 onChange={(e) => setAlbum(e.target.value)}
-                className="w-full px-3 py-2 border border-warmgray-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-400"
+                className="w-full px-3 py-2 border border-warmgray-200 dark:border-rose-900/40 rounded-xl text-xs bg-white dark:bg-[#251d30] text-warmgray-800 dark:text-warmgray-100 focus:outline-none focus:ring-2 focus:ring-rose-400"
               >
                 {Array.from(new Set(['Date Nights', 'Adventures', 'Candid Moments', 'Milestones', ...existingAlbums])).map((alb) => (
-                  <option key={alb} value={alb}>
+                  <option key={alb} value={alb} className="dark:bg-[#1f1729]">
                     {alb}
                   </option>
                 ))}
-                <option value="__NEW__">+ Create New Album...</option>
+                <option value="__NEW__" className="dark:bg-[#1f1729]">+ Create New Album...</option>
               </select>
               {album === '__NEW__' && (
                 <input
@@ -217,19 +217,19 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
                   value={customAlbum}
                   onChange={(e) => setCustomAlbum(e.target.value)}
                   placeholder="New album name..."
-                  className="mt-1.5 w-full px-3 py-1.5 border border-rose-200 rounded-xl text-xs"
+                  className="mt-1.5 w-full px-3 py-1.5 border border-rose-200 dark:border-rose-900/40 bg-white dark:bg-[#251d30] text-warmgray-800 dark:text-warmgray-100 rounded-xl text-xs"
                   autoFocus
                 />
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-warmgray-700 mb-1">Date Taken</label>
+              <label className="block text-xs font-semibold text-warmgray-700 dark:text-warmgray-300 mb-1">Date Taken</label>
               <input
                 type="date"
                 value={dateTaken}
                 onChange={(e) => setDateTaken(e.target.value)}
-                className="w-full px-3 py-2 border border-warmgray-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-400"
+                className="w-full px-3 py-2 border border-warmgray-200 dark:border-rose-900/40 rounded-xl text-xs bg-white dark:bg-[#251d30] text-warmgray-800 dark:text-warmgray-100 focus:outline-none focus:ring-2 focus:ring-rose-400"
               />
             </div>
           </div>
@@ -237,11 +237,11 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
           {/* Upload Progress Bar */}
           {isUploading && (
             <div className="space-y-1">
-              <div className="flex justify-between text-xs font-medium text-rose-600">
+              <div className="flex justify-between text-xs font-medium text-rose-600 dark:text-rose-400">
                 <span>Encrypting & uploading...</span>
                 <span>{progress}%</span>
               </div>
-              <div className="w-full bg-rose-100 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-rose-100 dark:bg-rose-950 rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-rose-600 h-full transition-all duration-300 rounded-full"
                   style={{ width: `${progress}%` }}
@@ -256,7 +256,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isUploading}
-              className="px-4 py-2 text-xs font-medium text-warmgray-600 hover:text-warmgray-800 transition"
+              className="px-4 py-2 text-xs font-medium text-warmgray-600 dark:text-warmgray-300 hover:text-warmgray-800 dark:hover:text-white transition"
             >
               Cancel
             </button>

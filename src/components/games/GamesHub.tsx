@@ -266,18 +266,18 @@ export const GamesHub: React.FC = () => {
   });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-20 animate-fade-in">
+    <div className="max-w-6xl mx-auto space-y-6 pb-20 animate-fade-in transition-colors">
       {/* Banner */}
-      <div className="bg-gradient-to-r from-rose-100/80 via-champagne-100/70 to-rose-50/80 rounded-3xl p-6 sm:p-8 border border-rose-200/60 shadow-sm relative overflow-hidden">
+      <div className="bg-gradient-to-r from-rose-100/80 via-champagne-100/70 to-rose-50/80 dark:from-[#231b2e] dark:via-[#1e1628] dark:to-[#251a2d] rounded-3xl p-6 sm:p-8 border border-rose-200/60 dark:border-rose-900/50 shadow-sm relative overflow-hidden transition-colors">
         <div className="relative z-10 max-w-xl">
-          <div className="flex items-center gap-2 text-xs font-semibold text-rose-700 tracking-wider uppercase mb-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-rose-700 dark:text-rose-300 tracking-wider uppercase mb-1">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Couples' Arcade</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-warmgray-900">
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-warmgray-900 dark:text-warmgray-100">
             Our Playroom
           </h1>
-          <p className="text-sm text-warmgray-600 mt-1">
+          <p className="text-sm text-warmgray-600 dark:text-warmgray-400 mt-1">
             15 games designed specifically for the two of us. From heartfelt romance and laugh-out-loud quizzes to synchronized co-op adventures!
           </p>
         </div>
@@ -292,7 +292,7 @@ export const GamesHub: React.FC = () => {
             className={`px-4 py-2 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
               selectedCategory === 'all'
                 ? 'bg-rose-600 text-white shadow-xs'
-                : 'bg-white hover:bg-rose-50 text-warmgray-600 border border-warmgray-200'
+                : 'bg-white dark:bg-[#1f1729] hover:bg-rose-50 dark:hover:bg-[#2c223a] text-warmgray-600 dark:text-warmgray-300 border border-warmgray-200 dark:border-rose-900/40'
             }`}
           >
             All Games (15)
@@ -303,7 +303,7 @@ export const GamesHub: React.FC = () => {
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
               selectedCategory === 'romantic'
                 ? 'bg-rose-600 text-white shadow-xs'
-                : 'bg-white hover:bg-rose-50 text-warmgray-600 border border-warmgray-200'
+                : 'bg-white dark:bg-[#1f1729] hover:bg-rose-50 dark:hover:bg-[#2c223a] text-warmgray-600 dark:text-warmgray-300 border border-warmgray-200 dark:border-rose-900/40'
             }`}
           >
             <Heart className="w-3.5 h-3.5" />
@@ -315,7 +315,7 @@ export const GamesHub: React.FC = () => {
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
               selectedCategory === 'funny'
                 ? 'bg-rose-600 text-white shadow-xs'
-                : 'bg-white hover:bg-rose-50 text-warmgray-600 border border-warmgray-200'
+                : 'bg-white dark:bg-[#1f1729] hover:bg-rose-50 dark:hover:bg-[#2c223a] text-warmgray-600 dark:text-warmgray-300 border border-warmgray-200 dark:border-rose-900/40'
             }`}
           >
             <Smile className="w-3.5 h-3.5" />
@@ -327,7 +327,7 @@ export const GamesHub: React.FC = () => {
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
               selectedCategory === 'coop'
                 ? 'bg-rose-600 text-white shadow-xs'
-                : 'bg-white hover:bg-rose-50 text-warmgray-600 border border-warmgray-200'
+                : 'bg-white dark:bg-[#1f1729] hover:bg-rose-50 dark:hover:bg-[#2c223a] text-warmgray-600 dark:text-warmgray-300 border border-warmgray-200 dark:border-rose-900/40'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -343,7 +343,7 @@ export const GamesHub: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search games..."
-            className="w-full pl-9 pr-4 py-2 bg-white border border-warmgray-200 rounded-xl text-xs text-warmgray-800 placeholder-warmgray-400 focus:outline-none focus:ring-2 focus:ring-rose-400"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#1f1729] border border-warmgray-200 dark:border-rose-900/40 rounded-xl text-xs text-warmgray-800 dark:text-warmgray-100 placeholder-warmgray-400 dark:placeholder-warmgray-500 focus:outline-none focus:ring-2 focus:ring-rose-400"
           />
         </div>
       </div>
@@ -354,21 +354,21 @@ export const GamesHub: React.FC = () => {
           <div
             key={game.id}
             onClick={() => handleSelectGame(game.id)}
-            className="group bg-white rounded-3xl p-6 border border-rose-100/90 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between"
+            className="group bg-white dark:bg-[#191422] rounded-3xl p-6 border border-rose-100/90 dark:border-rose-900/40 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between"
           >
             <div>
               {/* Header with icon & badge */}
               <div className="flex items-start justify-between mb-4">
-                <span className="text-4xl p-2.5 bg-rose-50 rounded-2xl group-hover:scale-110 transition-transform shadow-xs">
+                <span className="text-4xl p-2.5 bg-rose-50 dark:bg-[#251d30] rounded-2xl group-hover:scale-110 transition-transform shadow-xs">
                   {game.icon}
                 </span>
                 <span
                   className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
                     game.category === 'coop'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                       : game.category === 'romantic'
-                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                      ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                      : 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                   }`}
                 >
                   {game.playersBadge}
@@ -376,23 +376,23 @@ export const GamesHub: React.FC = () => {
               </div>
 
               {/* Title & Tagline */}
-              <h3 className="font-serif font-bold text-lg text-warmgray-900 group-hover:text-rose-600 transition-colors">
+              <h3 className="font-serif font-bold text-lg text-warmgray-900 dark:text-warmgray-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
                 {game.title}
               </h3>
-              <p className="text-xs font-semibold text-rose-600 mt-0.5 mb-2">
+              <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mt-0.5 mb-2">
                 {game.tagline}
               </p>
-              <p className="text-xs text-warmgray-600 leading-relaxed line-clamp-3">
+              <p className="text-xs text-warmgray-600 dark:text-warmgray-300 leading-relaxed line-clamp-3">
                 {game.description}
               </p>
             </div>
 
             {/* Footer with play CTA */}
-            <div className="mt-5 pt-3 border-t border-rose-50 flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-warmgray-400">
+            <div className="mt-5 pt-3 border-t border-rose-50 dark:border-rose-900/30 flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-warmgray-400 dark:text-warmgray-400">
                 {game.difficulty ? `Vibe: ${game.difficulty}` : ''}
               </span>
-              <span className="text-xs font-bold text-rose-600 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+              <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                 Play Game →
               </span>
             </div>

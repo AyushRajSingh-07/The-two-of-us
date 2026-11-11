@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { Navbar } from './components/common/Navbar';
 import { SettingsModal } from './components/common/SettingsModal';
 import { PairingScreen } from './components/common/PairingScreen';
@@ -61,7 +62,7 @@ const MainAppContent: React.FC = () => {
   const timeStats = calculateTimeTogether(couple?.anniversaryDate || '');
 
   return (
-    <div className="min-h-screen bg-[#faf8f6] text-warmgray-800 flex flex-col font-sans selection:bg-rose-200">
+    <div className="min-h-screen bg-[#faf8f6] dark:bg-[#0f0d13] text-warmgray-800 dark:text-warmgray-100 flex flex-col font-sans selection:bg-rose-200 dark:selection:bg-rose-900 transition-colors duration-200">
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -74,9 +75,9 @@ const MainAppContent: React.FC = () => {
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-6">
         {/* Welcome Love Banner on Games, Photos, and Profile tabs */}
         {(activeTab === 'games' || activeTab === 'photos' || activeTab === 'profile') && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white/70 backdrop-blur-xs rounded-2xl border border-rose-100 shadow-2xs">
-            <div className="flex items-center gap-2.5 text-xs text-warmgray-600">
-              <span className="p-1.5 bg-rose-50 text-rose-500 rounded-lg">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white/70 dark:bg-[#1a1622]/80 backdrop-blur-xs rounded-2xl border border-rose-100 dark:border-rose-900/40 shadow-2xs transition-colors">
+            <div className="flex items-center gap-2.5 text-xs text-warmgray-600 dark:text-warmgray-300">
+              <span className="p-1.5 bg-rose-50 dark:bg-rose-950/60 text-rose-500 rounded-lg">
                 <Heart className="w-4 h-4 fill-rose-500" />
               </span>
               <span>
@@ -85,10 +86,10 @@ const MainAppContent: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-rose-700 bg-rose-50 px-3 py-1 rounded-full border border-rose-200/60 whitespace-nowrap">
-                {dailyCounter.sharedCount} Love Days ✨
+              <span className="text-xs font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 px-3 py-1 rounded-full border border-rose-200/60 dark:border-rose-800/40 whitespace-nowrap">
+                {dailyCounter?.sharedCount ?? 612} Love Days ✨
               </span>
-              <span className="hidden sm:inline text-xs text-warmgray-500 bg-warmgray-100/70 px-2.5 py-1 rounded-full">
+              <span className="hidden sm:inline text-xs text-warmgray-500 dark:text-warmgray-400 bg-warmgray-100/70 dark:bg-warmgray-800/70 px-2.5 py-1 rounded-full">
                 {timeStats.totalDays}d since start
               </span>
             </div>
@@ -118,7 +119,9 @@ const MainAppContent: React.FC = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <MainAppContent />
+      <ThemeProvider>
+        <MainAppContent />
+      </ThemeProvider>
     </AuthProvider>
   );
 }
