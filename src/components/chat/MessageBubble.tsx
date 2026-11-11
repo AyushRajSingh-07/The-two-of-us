@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, CheckCheck, Reply, Trash2, Edit2, Smile, X } from 'lucide-react';
+import { Check, CheckCheck, Reply, Trash2, Edit2, Smile, X, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { ChatMessage } from '../../types';
 import { formatTime } from '../../lib/utils';
 
@@ -11,6 +11,7 @@ interface MessageBubbleProps {
   onReact: (messageId: string, emoji: string) => void;
   onEdit: (messageId: string, newText: string) => void;
   onDelete: (messageId: string) => void;
+  onRetry?: (message: ChatMessage) => void;
   onImageClick?: (url: string) => void;
 }
 
@@ -24,6 +25,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onReact,
   onEdit,
   onDelete,
+  onRetry,
   onImageClick,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -139,18 +141,42 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </div>
             )}
 
-            {/* Footer with Timestamp & Status ticks */}
+            {/* Footer with Timestamp & Status ticks / Sending / Failed */}
             <div
-              className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
-                isMe ? 'text-rose-200' : 'text-warmgray-400 dark:text-warmgray-400'
+              className={`flex items-center justify-end gap-1.5 mt-1 text-[10px] ${
+                isMe ? 'text-rose-100' : 'text-warmgray-400 dark:text-warmgray-400'
               }`}
             >
               <span>{formatTime(message.createdAt)}</span>
               {isMe && (
-                message.isRead ? (
-                  <span title="Read"><CheckCheck className="w-3.5 h-3.5 text-rose-200" /></span>
+                message.status === 'sending' ? (
+                  <span className="flex items-center gap-1 text-rose-200" title="Saving to database...">
+                    <Clock className="w-3 h-3 animate-pulse" />
+                    <span>Sending</span>
+                  </span>
+                ) : message.status === 'failed' ? (
+                  <span className="flex items-center gap-1 text-amber-200 font-semibold" title="Not delivered">
+                    <AlertCircle className="w-3 h-3 text-amber-300" />
+                    <span>Failed</span>
+                    {onRetry && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRetry(message);
+                        }}
+                        className="ml-1 px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/30 text-white font-bold flex items-center gap-0.5 transition cursor-pointer"
+                        title="Retry sending"
+                      >
+                        <RefreshCw className="w-2.5 h-2.5" />
+                        <span>Retry</span>
+                      </button>
+                    )}
+                  </span>
+                ) : message.isRead ? (
+                  <span title="Read by partner"><CheckCheck className="w-3.5 h-3.5 text-rose-200" /></span>
                 ) : (
-                  <span title="Sent"><Check className="w-3.5 h-3.5 text-rose-200" /></span>
+                  <span title="Delivered to database"><Check className="w-3.5 h-3.5 text-rose-200" /></span>
                 )
               )}
             </div>

@@ -119,6 +119,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }
 
+    // Periodic reconciliation every 4.5s so PC and Phone always reflect the exact database state
+    const reconcileTimer = setInterval(async () => {
+      try {
+        const counter = await DataStore.getDailyCounterState('couple-space-default');
+        if (counter && counter.todayRecord) {
+          setDailyCounter(counter);
+        }
+      } catch {}
+    }, 4500);
+
     const unsub = DataStore.onSync((e) => {
       if (e.type === 'COUPLE_UPDATED' && e.payload) {
         setCouple(e.payload);
@@ -126,6 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setDailyCounter(e.payload);
       } else if (e.type === 'BACKEND_CONNECTED') {
         setIsServerOnline(true);
+        loadData();
       } else if (e.type === 'BACKEND_DISCONNECTED') {
         setIsServerOnline(false);
       }
@@ -133,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       clearTimeout(safetyTimer);
+      clearInterval(reconcileTimer);
       if (typeof unsub === 'function') unsub();
     };
   }, [isAuthenticated, loadData, activePartnerIndex, handleCheckin]);

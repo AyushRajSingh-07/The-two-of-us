@@ -57,6 +57,8 @@ export interface ChatMessage {
   isDelivered: boolean;
   createdAt: string;
   editedAt?: string;
+  status?: 'sending' | 'sent' | 'failed';
+  error?: string;
 }
 
 export interface PhotoItem {

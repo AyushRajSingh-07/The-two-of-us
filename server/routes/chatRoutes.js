@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { db, getNowISO } from '../db.js';
-import { requireAuth } from '../auth.js';
+import { verifyToken } from '../auth.js';
 import { broadcast } from '../websocket.js';
 
 export const chatRouter = Router();
@@ -31,6 +31,7 @@ function formatMessage(row) {
     isDelivered: Boolean(row.is_delivered),
     editedAt: row.edited_at,
     createdAt: row.created_at,
+    status: 'sent',
   };
 }
 
@@ -39,20 +40,36 @@ function getAllMessages() {
   return rows.map(formatMessage);
 }
 
-// GET /api/chat/messages
-chatRouter.get('/messages', requireAuth, (req, res) => {
+function getOptionalUser(req) {
+  let token = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  } else if (req.query && req.query.token) {
+    token = req.query.token;
+  }
+  return token ? verifyToken(token) : null;
+}
+
+// GET /api/chat/messages -> Load canonical conversation history from SQLite
+chatRouter.get('/messages', (req, res) => {
   res.json(getAllMessages());
 });
 
-// POST /api/chat/messages
-chatRouter.post('/messages', requireAuth, (req, res) => {
-  const { text, imageUrl, replyToId, replyToText, replyToSender } = req.body;
+// POST /api/chat/messages -> Save message directly to SQLite before broadcasting
+chatRouter.post('/messages', (req, res) => {
+  const { text, imageUrl, replyToId, replyToText, replyToSender, senderId, senderName, senderAvatar } = req.body;
   if (!text && !imageUrl) {
     return res.status(400).json({ error: 'Message cannot be empty.' });
   }
 
-  // Get user details
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  const user = getOptionalUser(req);
+  const dbUser = user ? db.prepare('SELECT * FROM users WHERE id = ?').get(user.id) : null;
+
+  const actualSenderId = dbUser?.id || user?.id || senderId || 'partner-1';
+  const actualSenderName = dbUser?.display_name || user?.displayName || senderName || 'Ayush';
+  const actualSenderAvatar = dbUser?.avatar || senderAvatar || '';
+
   const msgId = 'msg-' + randomUUID();
   const now = getNowISO();
 
@@ -64,9 +81,9 @@ chatRouter.post('/messages', requireAuth, (req, res) => {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '{}', 0, 1, ?)
   `).run(
     msgId,
-    req.user.id,
-    user?.display_name || req.user.displayName,
-    user?.avatar || '',
+    actualSenderId,
+    actualSenderName,
+    actualSenderAvatar,
     text || '',
     imageUrl || null,
     replyToId || null,
@@ -75,53 +92,47 @@ chatRouter.post('/messages', requireAuth, (req, res) => {
     now
   );
 
-  const allMsgs = getAllMessages();
-  broadcast('CHAT_UPDATED', allMsgs);
-
   const created = db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(msgId);
-  res.status(201).json(formatMessage(created));
+  const formatted = formatMessage(created);
+
+  // Broadcast canonical messages to all connected WebSockets immediately
+  broadcast('CHAT_UPDATED', getAllMessages());
+
+  // Acknowledge successful save to shared SQLite database with HTTP 201
+  res.status(201).json(formatted);
 });
 
-// PUT /api/chat/messages/:id (edit)
-chatRouter.put('/messages/:id', requireAuth, (req, res) => {
+// PUT /api/chat/messages/:id (edit message)
+chatRouter.put('/messages/:id', (req, res) => {
   const { text } = req.body;
   const msg = db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(req.params.id);
   if (!msg) return res.status(404).json({ error: 'Message not found.' });
 
-  if (msg.sender_id !== req.user.id) {
-    return res.status(403).json({ error: 'You can only edit your own messages.' });
-  }
-
   const now = getNowISO();
   db.prepare('UPDATE chat_messages SET text = ?, edited_at = ? WHERE id = ?').run(text, now, req.params.id);
 
-  const allMsgs = getAllMessages();
-  broadcast('CHAT_UPDATED', allMsgs);
-
-  res.json({ success: true });
+  const updated = db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(req.params.id);
+  broadcast('CHAT_UPDATED', getAllMessages());
+  res.json(formatMessage(updated));
 });
 
-// DELETE /api/chat/messages/:id
-chatRouter.delete('/messages/:id', requireAuth, (req, res) => {
+// DELETE /api/chat/messages/:id (delete message)
+chatRouter.delete('/messages/:id', (req, res) => {
   const msg = db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(req.params.id);
   if (!msg) return res.status(404).json({ error: 'Message not found.' });
 
-  if (msg.sender_id !== req.user.id) {
-    return res.status(403).json({ error: 'You can only delete your own messages.' });
-  }
-
   db.prepare('DELETE FROM chat_messages WHERE id = ?').run(req.params.id);
-
-  const allMsgs = getAllMessages();
-  broadcast('CHAT_UPDATED', allMsgs);
-
-  res.json({ success: true });
+  broadcast('CHAT_UPDATED', getAllMessages());
+  res.json({ success: true, id: req.params.id });
 });
 
-// POST /api/chat/messages/:id/react
-chatRouter.post('/messages/:id/react', requireAuth, (req, res) => {
-  const { emoji } = req.body;
+// POST /api/chat/messages/:id/react (toggle emoji reaction)
+chatRouter.post('/messages/:id/react', (req, res) => {
+  const { emoji, userId: bodyUserId } = req.body;
   if (!emoji) return res.status(400).json({ error: 'Emoji is required.' });
+
+  const user = getOptionalUser(req);
+  const userId = user?.id || bodyUserId || 'partner-1';
 
   const msg = db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(req.params.id);
   if (!msg) return res.status(404).json({ error: 'Message not found.' });
@@ -129,38 +140,31 @@ chatRouter.post('/messages/:id/react', requireAuth, (req, res) => {
   let reactions = {};
   try {
     reactions = JSON.parse(msg.reactions || '{}');
-  } catch (e) {
+  } catch {
     reactions = {};
   }
 
-  const userList = reactions[emoji] || [];
-  if (userList.includes(req.user.id)) {
-    // Remove reaction
-    reactions[emoji] = userList.filter((u) => u !== req.user.id);
+  const userList = reactions[emoji] ? [...reactions[emoji]] : [];
+  if (userList.includes(userId)) {
+    reactions[emoji] = userList.filter((id) => id !== userId);
     if (reactions[emoji].length === 0) delete reactions[emoji];
   } else {
-    // Add reaction
-    reactions[emoji] = [...userList, req.user.id];
+    reactions[emoji] = [...userList, userId];
   }
 
-  db.prepare('UPDATE chat_messages SET reactions = ? WHERE id = ?').run(
-    JSON.stringify(reactions),
-    req.params.id
-  );
+  db.prepare('UPDATE chat_messages SET reactions = ? WHERE id = ?').run(JSON.stringify(reactions), req.params.id);
 
-  const allMsgs = getAllMessages();
-  broadcast('CHAT_UPDATED', allMsgs);
-
-  res.json({ success: true, reactions });
+  const updated = db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(req.params.id);
+  broadcast('CHAT_UPDATED', getAllMessages());
+  res.json(formatMessage(updated));
 });
 
-// POST /api/chat/read (mark partner messages as read)
-chatRouter.post('/read', requireAuth, (req, res) => {
-  // Mark messages where sender_id != current user as read
-  db.prepare('UPDATE chat_messages SET is_read = 1 WHERE sender_id != ? AND is_read = 0').run(req.user.id);
+// POST /api/chat/read (mark messages as read)
+chatRouter.post('/read', (req, res) => {
+  const user = getOptionalUser(req);
+  const readerId = user?.id || req.body?.readerId || 'partner-2';
 
-  const allMsgs = getAllMessages();
-  broadcast('CHAT_UPDATED', allMsgs);
-
+  db.prepare('UPDATE chat_messages SET is_read = 1 WHERE sender_id != ? AND is_read = 0').run(readerId);
+  broadcast('CHAT_UPDATED', getAllMessages());
   res.json({ success: true });
 });

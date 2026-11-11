@@ -6,8 +6,8 @@ import { formatCoupleSpace } from './authRoutes.js';
 
 export const coupleRouter = Router();
 
-// Get Couple Space details
-coupleRouter.get('/', requireAuth, (req, res) => {
+// Get Couple Space details (public read so any device displays canonical couple profile)
+coupleRouter.get('/', (req, res) => {
   const row = db.prepare('SELECT * FROM couple_space WHERE id = ?').get('couple-space-default');
   if (!row) {
     return res.status(404).json({ error: 'Couple space not found.' });
@@ -49,25 +49,25 @@ coupleRouter.put('/', requireAuth, (req, res) => {
       partner1_name = ?, partner1_avatar = ?, partner1_bio = ?,
       partner2_name = ?, partner2_avatar = ?, partner2_bio = ?,
       anniversary_date = ?, welcome_message = ?, invite_code = ?,
-      shared_timezone = ?, love_day_base_count = ?,
-      partner1_theme = ?, partner2_theme = ?,
-      reminder_daily_checkin = ?, reminder_date_night = ?, sound_effects_enabled = ?,
-      private_photos_only = ?, allow_photo_downloads = ?, is_paired = ?,
-      updated_at = ?
+      shared_timezone = ?, love_day_base_count = ?, partner1_theme = ?,
+      partner2_theme = ?, reminder_daily_checkin = ?, reminder_date_night = ?,
+      sound_effects_enabled = ?, private_photos_only = ?, allow_photo_downloads = ?,
+      is_paired = ?, updated_at = ?
     WHERE id = 'couple-space-default'
   `).run(
     partner1Name, partner1Avatar, partner1Bio,
     partner2Name, partner2Avatar, partner2Bio,
     anniversaryDate, welcomeMessage, inviteCode,
-    sharedTimezone, loveDayBaseCount,
-    partner1Theme, partner2Theme,
-    reminderDailyCheckin, reminderDateNight, soundEffectsEnabled,
-    privatePhotosOnly, allowPhotoDownloads, isPaired,
-    getNowISO()
+    sharedTimezone, loveDayBaseCount, partner1Theme,
+    partner2Theme, reminderDailyCheckin, reminderDateNight,
+    soundEffectsEnabled, privatePhotosOnly, allowPhotoDownloads,
+    isPaired, getNowISO()
   );
 
   const updated = db.prepare('SELECT * FROM couple_space WHERE id = ?').get('couple-space-default');
   const formatted = formatCoupleSpace(updated);
+
+  // Broadcast settings change in real-time
   broadcast('COUPLE_UPDATED', formatted);
 
   res.json(formatted);

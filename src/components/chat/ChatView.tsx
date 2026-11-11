@@ -20,28 +20,59 @@ export const ChatView: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Load messages
+  // Load canonical conversation history from SQLite
   const loadMessages = async () => {
     if (!couple) return;
-    const msgs = await DataStore.getMessages(couple.id);
-    setMessages(msgs);
-    // Mark received messages as read
-    await DataStore.markMessagesAsRead(couple.id, currentUser.id);
+    try {
+      const msgs = await DataStore.getMessages(couple.id);
+      setMessages((prev) => {
+        // Keep any currently sending or failed messages while updating confirmed ones
+        const pending = prev.filter((m) => m.status === 'sending' || m.status === 'failed');
+        const confirmedIds = new Set(msgs.map((m) => m.id));
+        const unresolvedPending = pending.filter((m) => !confirmedIds.has(m.id));
+        return [...msgs, ...unresolvedPending];
+      });
+      // Mark received messages as read in shared database
+      await DataStore.markMessagesAsRead(couple.id, currentUser.id);
+    } catch (err) {
+      console.warn('[ChatView] Failed to load messages:', err);
+    }
   };
 
   useEffect(() => {
     loadMessages();
+
+    // Background poll fallback every 3.5s for instant sync across devices even if WebSocket dropped
+    const pollTimer = setInterval(() => {
+      loadMessages();
+    }, 3500);
+
     const unsub = DataStore.onSync((e) => {
       if (e.type === 'CHAT_UPDATED') {
-        setMessages(e.payload);
+        if (Array.isArray(e.payload)) {
+          setMessages((prev) => {
+            const pending = prev.filter((m) => m.status === 'sending' || m.status === 'failed');
+            const confirmedIds = new Set(e.payload.map((m: any) => m.id));
+            const unresolvedPending = pending.filter((m) => !confirmedIds.has(m.id));
+            return [...e.payload, ...unresolvedPending];
+          });
+        } else {
+          loadMessages();
+        }
         if (couple) DataStore.markMessagesAsRead(couple.id, currentUser.id);
+      } else if (e.type === 'BACKEND_CONNECTED') {
+        loadMessages();
       } else if (e.type === 'TYPING_STATUS') {
         if (e.payload.userId === partner.id) {
           setPartnerTyping(Boolean(e.payload.isTyping));
         }
       }
     });
-    return unsub;
+
+    return () => {
+      clearInterval(pollTimer);
+      unsub();
+    };
   }, [couple?.id, currentUser.id, partner.id]);
 
   // Scroll to bottom on initial load and new messages
@@ -59,7 +90,10 @@ export const ChatView: React.FC = () => {
 
   const handleSendMessage = async (text: string, imageUrl?: string, replyTo?: ChatMessage) => {
     if (!couple) return;
-    await DataStore.sendMessage({
+
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const pendingMsg: ChatMessage = {
+      id: tempId,
       spaceId: couple.id,
       senderId: currentUser.id,
       senderName: currentUser.name,
@@ -69,8 +103,76 @@ export const ChatView: React.FC = () => {
       replyToId: replyTo?.id,
       replyToText: replyTo?.text,
       replyToSender: replyTo?.senderName,
-    });
-    await loadMessages();
+      reactions: {},
+      isRead: false,
+      isDelivered: false,
+      createdAt: new Date().toISOString(),
+      status: 'sending',
+    };
+
+    // 1. Show optimistic message immediately with 'sending' indicator
+    setMessages((prev) => [...prev, pendingMsg]);
+
+    try {
+      // 2. Save directly to shared SQLite database
+      const confirmed = await DataStore.sendMessage({
+        spaceId: couple.id,
+        senderId: currentUser.id,
+        senderName: currentUser.name,
+        senderAvatar: currentUser.avatar,
+        text,
+        imageUrl,
+        replyToId: replyTo?.id,
+        replyToText: replyTo?.text,
+        replyToSender: replyTo?.senderName,
+      });
+
+      // 3. Acknowledge successful save: replace temporary item with confirmed server message
+      setMessages((prev) =>
+        prev.map((m) => (m.id === tempId ? { ...confirmed, status: 'sent' } : m))
+      );
+    } catch (err: any) {
+      console.error('[ChatView] Send message failed:', err);
+      // 4. Mark as failed with retry action
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId ? { ...m, status: 'failed', error: 'Failed to deliver' } : m
+        )
+      );
+    }
+  };
+
+  const handleRetry = async (failedMsg: ChatMessage) => {
+    if (!couple) return;
+
+    // Set back to sending state
+    setMessages((prev) =>
+      prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'sending', error: undefined } : m))
+    );
+
+    try {
+      const confirmed = await DataStore.sendMessage({
+        spaceId: couple.id,
+        senderId: failedMsg.senderId,
+        senderName: failedMsg.senderName,
+        senderAvatar: failedMsg.senderAvatar,
+        text: failedMsg.text,
+        imageUrl: failedMsg.imageUrl,
+        replyToId: failedMsg.replyToId,
+        replyToText: failedMsg.replyToText,
+        replyToSender: failedMsg.replyToSender,
+      });
+
+      setMessages((prev) =>
+        prev.map((m) => (m.id === failedMsg.id ? { ...confirmed, status: 'sent' } : m))
+      );
+    } catch (err) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === failedMsg.id ? { ...m, status: 'failed', error: 'Retry failed' } : m
+        )
+      );
+    }
   };
 
   const handleTyping = (isTyping: boolean) => {
@@ -220,6 +322,7 @@ export const ChatView: React.FC = () => {
                   onReact={handleReact}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onRetry={handleRetry}
                   onImageClick={(url) => setZoomedImage(url)}
                 />
               </React.Fragment>

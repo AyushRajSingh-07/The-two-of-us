@@ -151,7 +151,7 @@ export function connectWebSocket() {
 
   // Convert http/https to ws/wss
   let wsUrl = baseUrl.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
-  wsUrl += `/api/ws${token ? '?token=' + encodeURIComponent(token) : ''}`;
+  wsUrl += `/api/ws?ngrok-skip-browser-warning=1${token ? '&token=' + encodeURIComponent(token) : ''}`;
 
   try {
     ws = new WebSocket(wsUrl);
@@ -159,6 +159,19 @@ export function connectWebSocket() {
     ws.onopen = () => {
       console.log('[WS] Connected to Sanctuary Backend:', wsUrl);
       dispatchSyncEvent('BACKEND_CONNECTED', { url: baseUrl });
+
+      // Automatically reconcile canonical history & status on connect / reconnect
+      Api.getMessages().then((msgs) => {
+        if (Array.isArray(msgs)) dispatchSyncEvent('CHAT_UPDATED', msgs);
+      }).catch(() => {});
+
+      Api.getDailyCounter().then((counter) => {
+        if (counter && counter.todayRecord) dispatchSyncEvent('DAILY_CHECKIN_UPDATED', counter);
+      }).catch(() => {});
+
+      Api.getCoupleSpace().then((couple) => {
+        if (couple && couple.id) dispatchSyncEvent('COUPLE_UPDATED', couple);
+      }).catch(() => {});
     };
 
     ws.onmessage = (event) => {
@@ -209,6 +222,24 @@ export function sendWebSocketMessage(type: string, payload?: any) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type, ...payload }));
   }
+}
+
+// Auto-reconnect & reconcile when phone or PC tab becomes active again
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        connectWebSocket();
+      } else {
+        Api.getMessages().then((msgs) => {
+          if (Array.isArray(msgs)) dispatchSyncEvent('CHAT_UPDATED', msgs);
+        }).catch(() => {});
+        Api.getDailyCounter().then((c) => {
+          if (c) dispatchSyncEvent('DAILY_CHECKIN_UPDATED', c);
+        }).catch(() => {});
+      }
+    }
+  });
 }
 
 // -------------------------------------------------------------
@@ -269,9 +300,10 @@ export const Api = {
     return apiRequest('/api/checkin');
   },
 
-  async recordDailyCheckin() {
+  async recordDailyCheckin(info?: { partnerIndex?: number; isPartner1?: boolean; username?: string }) {
     return apiRequest('/api/checkin', {
       method: 'POST',
+      body: JSON.stringify(info || {}),
     });
   },
 
@@ -286,6 +318,9 @@ export const Api = {
     replyToId?: string;
     replyToText?: string;
     replyToSender?: string;
+    senderId?: string;
+    senderName?: string;
+    senderAvatar?: string;
   }) {
     return apiRequest('/api/chat/messages', {
       method: 'POST',

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db, getKolkataDateString, getNowISO } from '../db.js';
-import { requireAuth } from '../auth.js';
+import { verifyToken } from '../auth.js';
 import { broadcast } from '../websocket.js';
 import { formatCoupleSpace } from './authRoutes.js';
 
@@ -59,18 +59,45 @@ function buildCounterState() {
   };
 }
 
-// GET /api/checkin -> returns current daily counter state
-checkinRouter.get('/', requireAuth, (req, res) => {
+// Helper to extract user identity if token present
+function getOptionalUser(req) {
+  let token = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  } else if (req.query && req.query.token) {
+    token = req.query.token;
+  }
+  return token ? verifyToken(token) : null;
+}
+
+// GET /api/checkin -> returns current daily counter state from SQLite
+// Public endpoint so every phone & PC immediately displays canonical truth
+checkinRouter.get('/', (req, res) => {
   res.json(buildCounterState());
 });
 
-// POST /api/checkin -> records check-in for authenticated user
-checkinRouter.post('/', requireAuth, (req, res) => {
+// POST /api/checkin -> records check-in for Ayush or Vrishti
+checkinRouter.post('/', (req, res) => {
   const todayDate = getKolkataDateString();
   const now = getNowISO();
-  const isP1 = req.user.id === 'partner-1';
 
-  // Perform atomic update inside a transaction
+  const user = getOptionalUser(req);
+  const body = req.body || {};
+
+  // Determine whether this check-in is for Partner 1 (Ayush) or Partner 2 (Vrishti)
+  let isP1 = true;
+  if (user) {
+    isP1 = user.id === 'partner-1' || user.username === 'ayush';
+  } else if (body.partnerIndex !== undefined) {
+    isP1 = Number(body.partnerIndex) === 1;
+  } else if (body.isPartner1 !== undefined) {
+    isP1 = Boolean(body.isPartner1);
+  } else if (body.username) {
+    isP1 = String(body.username).toLowerCase().includes('ayush');
+  }
+
+  // Perform atomic update inside a transaction to prevent race conditions
   db.exec('BEGIN TRANSACTION;');
   try {
     const record = getOrCreateRecord(todayDate);
@@ -80,12 +107,16 @@ checkinRouter.post('/', requireAuth, (req, res) => {
     let p2Checked = Boolean(record.partner2_checked_in);
     let p2Time = record.partner2_checked_in_at;
 
-    if (isP1 && !p1Checked) {
-      p1Checked = true;
-      p1Time = now;
-    } else if (!isP1 && !p2Checked) {
-      p2Checked = true;
-      p2Time = now;
+    if (isP1) {
+      if (!p1Checked) {
+        p1Checked = true;
+        p1Time = now;
+      }
+    } else {
+      if (!p2Checked) {
+        p2Checked = true;
+        p2Time = now;
+      }
     }
 
     const bothCompleted = p1Checked && p2Checked;
@@ -101,7 +132,7 @@ checkinRouter.post('/', requireAuth, (req, res) => {
         SET love_day_base_count = love_day_base_count + 1, updated_at = ?
         WHERE id = 'couple-space-default'
       `).run(now);
-      console.log(`[CHECKIN] Both partners checked in on ${todayDate}! Love Day counter incremented +1.`);
+      console.log(`[CHECKIN] Both partners completed on ${todayDate}! Love Day counter incremented +1.`);
     }
 
     db.prepare(`
@@ -121,7 +152,7 @@ checkinRouter.post('/', requireAuth, (req, res) => {
 
     const state = buildCounterState();
 
-    // Broadcast check-in update to both devices in real time
+    // Broadcast check-in update to both devices in real time over WebSocket
     broadcast('DAILY_CHECKIN_UPDATED', state);
 
     if (incremented) {
