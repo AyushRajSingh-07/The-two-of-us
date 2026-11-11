@@ -2,17 +2,27 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import { CoupleSpace, ChatMessage, PhotoItem, GameSessionState, SharedDailyCounterState, DailyCheckinRecord } from '../types';
 import { getKolkataDateString } from './utils';
 
-// Default initial couple profile with reset Love Day counter (anniversary = today in Asia/Kolkata)
+// Default initial couple profile with reset Love Day counter and bio
 const DEFAULT_COUPLE: CoupleSpace = {
   id: 'couple-space-default',
   partner1Name: 'Ayush',
   partner1Avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  partner1Bio: 'Adoring boyfriend & puzzle enthusiast. Always smiling when with Vrishti ❤️',
   partner2Name: 'Vrishti',
   partner2Avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  partner2Bio: 'Chief tea drinker, garden master, and Ayush’s favorite human ✨',
   anniversaryDate: getKolkataDateString(),
   welcomeMessage: 'Welcome to our private sanctuary. A quiet corner just for us.',
   inviteCode: 'US-FOREVER-2024',
   isPaired: true,
+  sharedTimezone: 'Asia/Kolkata',
+  loveDayBaseCount: 612,
+  loveDayBaseMigrated: true,
+  reminderDailyCheckin: true,
+  reminderDateNight: true,
+  soundEffectsEnabled: true,
+  privatePhotosOnly: true,
+  allowPhotoDownloads: true,
   createdAt: new Date().toISOString(),
 };
 
@@ -97,6 +107,7 @@ const DEFAULT_PHOTOS: PhotoItem[] = [
 ];
 
 // Cross-device and cross-tab sync setup
+const LOVE_DAY_DATES_COUNTED_KEY = 'love_day_dates_counted';
 const broadcastChannel = typeof BroadcastChannel !== 'undefined' 
   ? new BroadcastChannel('two-of-us-sync')
   : null;
@@ -156,15 +167,25 @@ export const DataStore = {
         if (data && !error) {
           return {
             id: data.id,
-            partner1Name: data.partner1_name,
-            partner1Avatar: data.partner1_avatar,
-            partner2Name: data.partner2_name,
-            partner2Avatar: data.partner2_avatar,
-            anniversaryDate: data.anniversary_date,
-            welcomeMessage: data.welcome_message,
-            inviteCode: data.invite_code,
-            isPaired: data.is_paired,
-            createdAt: data.created_at,
+            partner1Name: data.partner1_name || 'Ayush',
+            partner1Avatar: data.partner1_avatar || DEFAULT_COUPLE.partner1Avatar,
+            partner1Bio: data.partner1_bio || DEFAULT_COUPLE.partner1Bio,
+            partner2Name: data.partner2_name || 'Vrishti',
+            partner2Avatar: data.partner2_avatar || DEFAULT_COUPLE.partner2Avatar,
+            partner2Bio: data.partner2_bio || DEFAULT_COUPLE.partner2Bio,
+            anniversaryDate: data.anniversary_date || DEFAULT_COUPLE.anniversaryDate,
+            welcomeMessage: data.welcome_message || DEFAULT_COUPLE.welcomeMessage,
+            inviteCode: data.invite_code || DEFAULT_COUPLE.inviteCode,
+            isPaired: data.is_paired ?? true,
+            sharedTimezone: data.shared_timezone || 'Asia/Kolkata',
+            loveDayBaseCount: data.love_day_base_count || 612,
+            loveDayBaseMigrated: data.love_day_base_migrated ?? true,
+            reminderDailyCheckin: data.reminder_daily_checkin ?? true,
+            reminderDateNight: data.reminder_date_night ?? true,
+            soundEffectsEnabled: data.sound_effects_enabled ?? true,
+            privatePhotosOnly: data.private_photos_only ?? true,
+            allowPhotoDownloads: data.allow_photo_downloads ?? true,
+            createdAt: data.created_at || new Date().toISOString(),
           };
         }
       } catch (e) {
@@ -172,13 +193,21 @@ export const DataStore = {
       }
     }
     const local = loadLocal<CoupleSpace>('couple_space', DEFAULT_COUPLE);
-    // Auto-migrate legacy default names and reset Love Day counter to 0 if needed
-    if (local.partner1Name === 'Alex' || local.partner2Name === 'Jordan' || local.anniversaryDate === '2024-02-14') {
-      local.partner1Name = 'Ayush';
-      local.partner2Name = 'Vrishti';
-      local.anniversaryDate = getKolkataDateString();
-      saveLocal('couple_space', local);
-    }
+    // Auto-migrate legacy default names, add bio defaults, and reset Love Day counter to 612
+    if (!local.partner1Bio) local.partner1Bio = DEFAULT_COUPLE.partner1Bio;
+    if (!local.partner2Bio) local.partner2Bio = DEFAULT_COUPLE.partner2Bio;
+    if (!local.sharedTimezone) local.sharedTimezone = 'Asia/Kolkata';
+    if (!local.loveDayBaseCount) local.loveDayBaseCount = 612;
+    local.loveDayBaseMigrated = true;
+    if (local.partner1Name === 'Alex') local.partner1Name = 'Ayush';
+    if (local.partner2Name === 'Jordan') local.partner2Name = 'Vrishti';
+    if (local.anniversaryDate === '2024-02-14') local.anniversaryDate = getKolkataDateString();
+    if (local.reminderDailyCheckin === undefined) local.reminderDailyCheckin = true;
+    if (local.reminderDateNight === undefined) local.reminderDateNight = true;
+    if (local.soundEffectsEnabled === undefined) local.soundEffectsEnabled = true;
+    if (local.privatePhotosOnly === undefined) local.privatePhotosOnly = true;
+    if (local.allowPhotoDownloads === undefined) local.allowPhotoDownloads = true;
+    saveLocal('couple_space', local);
     return local;
   },
 
@@ -190,12 +219,22 @@ export const DataStore = {
           id: space.id.startsWith('couple-space') ? undefined : space.id,
           partner1_name: space.partner1Name,
           partner1_avatar: space.partner1Avatar,
+          partner1_bio: space.partner1Bio,
           partner2_name: space.partner2Name,
           partner2_avatar: space.partner2Avatar,
+          partner2_bio: space.partner2Bio,
           anniversary_date: space.anniversaryDate,
           welcome_message: space.welcomeMessage,
           invite_code: space.inviteCode,
           is_paired: space.isPaired,
+          shared_timezone: space.sharedTimezone || 'Asia/Kolkata',
+          love_day_base_count: space.loveDayBaseCount || 612,
+          love_day_base_migrated: true,
+          reminder_daily_checkin: space.reminderDailyCheckin ?? true,
+          reminder_date_night: space.reminderDateNight ?? true,
+          sound_effects_enabled: space.soundEffectsEnabled ?? true,
+          private_photos_only: space.privatePhotosOnly ?? true,
+          allow_photo_downloads: space.allowPhotoDownloads ?? true,
           updated_at: new Date().toISOString(),
         });
       } catch (err) {
@@ -535,10 +574,33 @@ export const DataStore = {
     notifySync('GAME_UPDATED', session);
   },
 
-  // Shared Daily Login Check-in Counter (Asia/Kolkata timezone)
+  // Shared Daily Login Check-in Counter (Asia/Kolkata timezone with 612 baseline)
   async getDailyCounterState(spaceId: string): Promise<SharedDailyCounterState> {
     const today = getKolkataDateString();
     let history: Record<string, DailyCheckinRecord> = {};
+
+    // One-time baseline migration to 612 days
+    const isMigrated = loadLocal<boolean>('love_day_base_migrated_v612', false);
+    if (!isMigrated) {
+      saveLocal('love_day_base_count', 612);
+      saveLocal('love_day_dates_counted', []);
+      saveLocal('love_day_base_migrated_v612', true);
+
+      // Reset today record to pending so counter starts at 612 waiting for today's logins
+      const currentHistory = loadLocal<Record<string, DailyCheckinRecord>>('daily_checkin_history', {});
+      currentHistory[today] = {
+        date: today,
+        partner1CheckedIn: false,
+        partner2CheckedIn: false,
+        bothCompleted: false,
+      };
+      saveLocal('daily_checkin_history', currentHistory);
+
+      const couple = loadLocal<CoupleSpace>('couple_space', DEFAULT_COUPLE);
+      couple.loveDayBaseCount = 612;
+      couple.loveDayBaseMigrated = true;
+      saveLocal('couple_space', couple);
+    }
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -578,8 +640,22 @@ export const DataStore = {
       };
     }
 
-    // Compute cumulative shared count (count of distinct calendar days where both completed)
-    const sharedCount = Object.values(history).filter((rec) => rec.bothCompleted).length;
+    const baseCount = loadLocal<number>('love_day_base_count', 612);
+    let datesCounted = loadLocal<string[]>(LOVE_DAY_DATES_COUNTED_KEY, []);
+
+    // Sync any days where both completed into datesCounted
+    let datesChanged = false;
+    Object.entries(history).forEach(([dateStr, rec]) => {
+      if (rec.bothCompleted && !datesCounted.includes(dateStr)) {
+        datesCounted.push(dateStr);
+        datesChanged = true;
+      }
+    });
+    if (datesChanged) {
+      saveLocal('love_day_dates_counted', datesCounted);
+    }
+
+    const sharedCount = baseCount + datesCounted.length;
 
     return {
       sharedCount,
@@ -626,6 +702,13 @@ export const DataStore = {
     history[today] = todayRecord;
     saveLocal('daily_checkin_history', history);
 
+    const baseCount = loadLocal<number>('love_day_base_count', 612);
+    let datesCounted = loadLocal<string[]>(LOVE_DAY_DATES_COUNTED_KEY, []);
+    if (todayRecord.bothCompleted && !datesCounted.includes(today)) {
+      datesCounted.push(today);
+      saveLocal('love_day_dates_counted', datesCounted);
+    }
+
     if (isSupabaseConfigured && supabase && changed) {
       try {
         await supabase.from('daily_checkins').upsert({
@@ -645,7 +728,7 @@ export const DataStore = {
       }
     }
 
-    const updatedSharedCount = Object.values(history).filter((rec) => rec.bothCompleted).length;
+    const updatedSharedCount = baseCount + datesCounted.length;
     const result: SharedDailyCounterState = {
       sharedCount: updatedSharedCount,
       todayDate: today,

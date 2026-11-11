@@ -4,6 +4,7 @@ export interface UserProfile {
   id: string;
   name: string;
   avatar: string;
+  bio?: string;
   email?: string;
   isPartner1: boolean;
 }
@@ -12,12 +13,22 @@ export interface CoupleSpace {
   id: string;
   partner1Name: string;
   partner1Avatar: string;
+  partner1Bio?: string;
   partner2Name: string;
   partner2Avatar: string;
+  partner2Bio?: string;
   anniversaryDate: string; // YYYY-MM-DD
   welcomeMessage: string;
   inviteCode: string;
   isPaired: boolean;
+  sharedTimezone: string; // e.g. 'Asia/Kolkata'
+  loveDayBaseCount: number; // e.g. 612
+  loveDayBaseMigrated: boolean; // Ensures one-time update to 612
+  reminderDailyCheckin: boolean;
+  reminderDateNight: boolean;
+  soundEffectsEnabled: boolean;
+  privatePhotosOnly: boolean;
+  allowPhotoDownloads: boolean;
   createdAt: string;
 }
 

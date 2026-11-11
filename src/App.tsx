@@ -7,13 +7,15 @@ import { DailyLoginCounter } from './components/common/DailyLoginCounter';
 import { GamesHub } from './components/games/GamesHub';
 import { ChatView } from './components/chat/ChatView';
 import { PhotosView } from './components/photos/PhotosView';
+import { ProfileView } from './components/profile/ProfileView';
+import { SettingsView } from './components/settings/SettingsView';
 import { DataStore } from './lib/store';
 import { Heart, Sparkles, MessageCircle, Gamepad2, Image } from 'lucide-react';
 import { calculateTimeTogether } from './lib/utils';
 
 const MainAppContent: React.FC = () => {
-  const { couple, currentUser, isPaired, isPartner1Active, switchActiveUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'games' | 'chat' | 'photos'>('games');
+  const { couple, currentUser, isPaired, isPartner1Active, switchActiveUser, dailyCounter } = useAuth();
+  const [activeTab, setActiveTab] = useState<'games' | 'chat' | 'photos' | 'profile' | 'settings'>('games');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pairedOverride, setPairedOverride] = useState(false);
@@ -22,7 +24,7 @@ const MainAppContent: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam === 'chat' || tabParam === 'photos' || tabParam === 'games') {
+    if (tabParam === 'chat' || tabParam === 'photos' || tabParam === 'games' || tabParam === 'profile' || tabParam === 'settings') {
       setActiveTab(tabParam);
     }
     const roleParam = params.get('role');
@@ -64,14 +66,14 @@ const MainAppContent: React.FC = () => {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSettings={() => setActiveTab('settings')}
         unreadCount={unreadCount}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-6">
-        {/* Welcome Love Banner on Games and Photos tabs */}
-        {activeTab !== 'chat' && (
+        {/* Welcome Love Banner on Games, Photos, and Profile tabs */}
+        {(activeTab === 'games' || activeTab === 'photos' || activeTab === 'profile') && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white/70 backdrop-blur-xs rounded-2xl border border-rose-100 shadow-2xs">
             <div className="flex items-center gap-2.5 text-xs text-warmgray-600">
               <span className="p-1.5 bg-rose-50 text-rose-500 rounded-lg">
@@ -82,22 +84,29 @@ const MainAppContent: React.FC = () => {
               </span>
             </div>
 
-            <div className="text-xs font-semibold text-rose-700 bg-rose-50 px-3 py-1 rounded-full border border-rose-200/60 whitespace-nowrap">
-              {timeStats.totalDays} days of joy together ✨
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-rose-700 bg-rose-50 px-3 py-1 rounded-full border border-rose-200/60 whitespace-nowrap">
+                {dailyCounter.sharedCount} Love Days ✨
+              </span>
+              <span className="hidden sm:inline text-xs text-warmgray-500 bg-warmgray-100/70 px-2.5 py-1 rounded-full">
+                {timeStats.totalDays}d since start
+              </span>
             </div>
           </div>
         )}
 
         {/* Shared Daily Login Counter (Ayush & Vrishti in Asia/Kolkata) */}
-        {activeTab !== 'chat' && <DailyLoginCounter />}
+        {(activeTab === 'games' || activeTab === 'photos') && <DailyLoginCounter />}
 
         {/* Tab View Switcher */}
         {activeTab === 'games' && <GamesHub />}
         {activeTab === 'chat' && <ChatView />}
         {activeTab === 'photos' && <PhotosView />}
+        {activeTab === 'profile' && <ProfileView />}
+        {activeTab === 'settings' && <SettingsView onNavigateToProfile={() => setActiveTab('profile')} />}
       </main>
 
-      {/* Settings Modal */}
+      {/* Settings Modal (kept for backward compatibility or quick popup if invoked) */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}

@@ -15,6 +15,7 @@ interface AuthContextType {
   dailyCounter: SharedDailyCounterState;
   switchActiveUser: () => void;
   updateCoupleSettings: (updates: Partial<CoupleSpace>) => Promise<void>;
+  updateMyProfile: (profile: { name?: string; avatar?: string; bio?: string }) => Promise<void>;
   pairWithInviteCode: (code: string, name: string) => Promise<boolean>;
   refreshCouple: () => Promise<void>;
   triggerCheckin: () => Promise<void>;
@@ -99,6 +100,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await DataStore.saveCoupleSpace(updated);
   };
 
+  // Strictly enforce that each partner can only update their own profile details
+  const updateMyProfile = async (profile: { name?: string; avatar?: string; bio?: string }) => {
+    if (!couple) return;
+    const isP1 = activePartnerIndex === 1;
+    const updates: Partial<CoupleSpace> = isP1
+      ? {
+          partner1Name: profile.name !== undefined ? profile.name : couple.partner1Name,
+          partner1Avatar: profile.avatar !== undefined ? profile.avatar : couple.partner1Avatar,
+          partner1Bio: profile.bio !== undefined ? profile.bio : couple.partner1Bio,
+        }
+      : {
+          partner2Name: profile.name !== undefined ? profile.name : couple.partner2Name,
+          partner2Avatar: profile.avatar !== undefined ? profile.avatar : couple.partner2Avatar,
+          partner2Bio: profile.bio !== undefined ? profile.bio : couple.partner2Bio,
+        };
+    await updateCoupleSettings(updates);
+  };
+
   const pairWithInviteCode = async (code: string, name: string): Promise<boolean> => {
     if (!couple) return false;
     if (couple.inviteCode.trim().toUpperCase() === code.trim().toUpperCase()) {
@@ -122,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     id: 'partner-1',
     name: couple?.partner1Name || 'Ayush',
     avatar: couple?.partner1Avatar || '',
+    bio: couple?.partner1Bio || 'Adoring boyfriend & puzzle enthusiast. Always smiling when with Vrishti ❤️',
     isPartner1: true,
   };
 
@@ -129,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     id: 'partner-2',
     name: couple?.partner2Name || 'Vrishti',
     avatar: couple?.partner2Avatar || '',
+    bio: couple?.partner2Bio || 'Chief tea drinker, garden master, and Ayush’s favorite human ✨',
     isPartner1: false,
   };
 
@@ -159,6 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dailyCounter,
         switchActiveUser,
         updateCoupleSettings,
+        updateMyProfile,
         pairWithInviteCode,
         refreshCouple,
         triggerCheckin,
