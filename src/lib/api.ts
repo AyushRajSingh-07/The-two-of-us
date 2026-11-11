@@ -212,6 +212,19 @@ export function connectWebSocket() {
           // Heartbeat acknowledged
           return;
         }
+        if (msg.type === 'GAME_UPDATED') {
+          const gameData = msg.payload?.data !== undefined 
+            ? msg.payload.data 
+            : (msg.payload?.payload !== undefined ? msg.payload.payload : msg.payload?.state);
+          const normalized = {
+            ...msg.payload,
+            data: gameData,
+            payload: gameData,
+            state: gameData,
+          };
+          dispatchSyncEvent('GAME_UPDATED', normalized);
+          return;
+        }
         if (msg.type) {
           dispatchSyncEvent(msg.type, msg.payload);
         }

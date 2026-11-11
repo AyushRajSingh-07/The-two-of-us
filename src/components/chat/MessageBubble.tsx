@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check, CheckCheck, Reply, Trash2, Edit2, Smile, X, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { ChatMessage } from '../../types';
 import { formatTime } from '../../lib/utils';
+import { useAuth } from '../../context/AuthContext';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -28,10 +29,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onRetry,
   onImageClick,
 }) => {
+  const { couple } = useAuth();
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.text);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+
+  // Dynamically resolve live profile picture from couple space so chat icons update immediately when changed
+  const isP1 = message.senderId === 'partner-1' || message.senderName === couple?.partner1Name;
+  const liveAvatar = isP1 ? couple?.partner1Avatar : couple?.partner2Avatar;
+  const displayAvatar = liveAvatar || message.senderAvatar || (isP1
+    ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
+    : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150');
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,9 +71,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       )}
 
       <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[70%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-        {/* Avatar */}
+        {/* Avatar with Live Profile Picture */}
         <img
-          src={message.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+          src={displayAvatar}
           alt={message.senderName}
           className="w-8 h-8 rounded-full object-cover border border-rose-200 dark:border-rose-800 shadow-xs flex-shrink-0"
         />

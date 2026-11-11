@@ -490,16 +490,19 @@ export const DataStore = {
   async getGameSession<T = any>(sessionId: string): Promise<GameSessionState<T> | null> {
     try {
       const row = await Api.getGameSession(sessionId);
-      if (row && row.sessionId) {
-        return {
-          sessionId: row.sessionId,
-          gameId: row.gameId,
-          currentTurnUserId: row.currentTurnUserId,
-          status: row.status,
-          data: row.data,
-          lastUpdatedBy: row.lastUpdatedBy,
-          updatedAt: row.updatedAt,
+      if (row && (row.sessionId || row.state !== undefined || row.data !== undefined)) {
+        const gameData = row.data !== undefined ? row.data : row.state;
+        const sessionObj: GameSessionState<T> = {
+          sessionId: row.sessionId || sessionId,
+          gameId: row.gameId || row.gameTitle || sessionId,
+          currentTurnUserId: row.currentTurnUserId || row.updatedBy || 'partner-1',
+          status: row.status || 'in_progress',
+          data: gameData,
+          lastUpdatedBy: row.lastUpdatedBy || row.updatedBy || 'partner-1',
+          updatedAt: row.updatedAt || new Date().toISOString(),
         };
+        saveLocal(`game_session_${sessionId}`, sessionObj);
+        return sessionObj;
       }
     } catch (err) {
       console.warn('[DataStore] Backend getGameSession error:', err);

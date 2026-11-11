@@ -40,8 +40,9 @@ export const EscapeRoomGame: React.FC<{ onBack: () => void }> = ({ onBack }) => 
     });
 
     const unsub = DataStore.onSync((e) => {
-      if (e.type === 'GAME_UPDATED' && e.payload?.gameId === 'escape_room') {
-        setState(e.payload.data);
+      if (e.type === 'GAME_UPDATED' && (e.payload?.sessionId === sessionId || e.payload?.gameId === 'escape_room' || e.payload?.gameTitle === 'escape_room')) {
+        const incoming = e.payload?.data !== undefined ? e.payload.data : e.payload?.payload;
+        if (incoming) setState(incoming);
       }
     });
     return unsub;

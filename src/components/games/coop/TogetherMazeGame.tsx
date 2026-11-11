@@ -47,8 +47,9 @@ export const TogetherMazeGame: React.FC<{ onBack: () => void }> = ({ onBack }) =
     });
 
     const unsub = DataStore.onSync((e) => {
-      if (e.type === 'GAME_UPDATED' && e.payload?.gameId === 'together_maze') {
-        setGameState(e.payload.data);
+      if (e.type === 'GAME_UPDATED' && (e.payload?.sessionId === sessionId || e.payload?.gameId === 'together_maze' || e.payload?.gameTitle === 'together_maze')) {
+        const incomingData = e.payload?.data !== undefined ? e.payload.data : e.payload?.payload;
+        if (incomingData) setGameState(incomingData);
       }
     });
     return unsub;

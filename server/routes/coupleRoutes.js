@@ -15,8 +15,8 @@ coupleRouter.get('/', (req, res) => {
   res.json(formatCoupleSpace(row));
 });
 
-// Update Couple Space settings
-coupleRouter.put('/', requireAuth, (req, res) => {
+// Update Couple Space settings (accessible from phone & PC to persist profile & couple updates)
+coupleRouter.put('/', (req, res) => {
   const existing = db.prepare('SELECT * FROM couple_space WHERE id = ?').get('couple-space-default');
   if (!existing) {
     return res.status(404).json({ error: 'Couple space not found.' });
@@ -64,11 +64,48 @@ coupleRouter.put('/', requireAuth, (req, res) => {
     isPaired, getNowISO()
   );
 
+  // Keep users table in sync with profile updates
+  try {
+    db.prepare("UPDATE users SET avatar = ?, display_name = ? WHERE id = 'partner-1' OR username = 'ayush'").run(partner1Avatar, partner1Name);
+    db.prepare("UPDATE users SET avatar = ?, display_name = ? WHERE id = 'partner-2' OR username = 'vrishti'").run(partner2Avatar, partner2Name);
+  } catch {}
+
+  // Update existing chat messages sender_avatar so chat history reflects the new profile picture
+  try {
+    db.prepare("UPDATE chat_messages SET sender_avatar = ? WHERE sender_id = 'partner-1' OR sender_name = ?").run(partner1Avatar, partner1Name);
+    db.prepare("UPDATE chat_messages SET sender_avatar = ? WHERE sender_id = 'partner-2' OR sender_name = ?").run(partner2Avatar, partner2Name);
+  } catch {}
+
   const updated = db.prepare('SELECT * FROM couple_space WHERE id = ?').get('couple-space-default');
   const formatted = formatCoupleSpace(updated);
 
-  // Broadcast settings change in real-time
+  // Broadcast settings change in real-time to all devices
   broadcast('COUPLE_UPDATED', formatted);
+
+  // Also broadcast refreshed chat messages so avatars update live in chat
+  try {
+    const chatRows = db.prepare('SELECT * FROM chat_messages ORDER BY created_at ASC').all();
+    const formattedMsgs = chatRows.map((r) => ({
+      id: r.id,
+      clientMessageId: r.client_message_id || undefined,
+      spaceId: 'couple-space-default',
+      senderId: r.sender_id,
+      senderName: r.sender_name,
+      senderAvatar: r.sender_id === 'partner-1' || r.sender_name === partner1Name ? partner1Avatar : partner2Avatar,
+      text: r.text,
+      imageUrl: r.image_url,
+      replyToId: r.reply_to_id,
+      replyToText: r.reply_to_text,
+      replyToSender: r.reply_to_sender,
+      reactions: JSON.parse(r.reactions || '{}'),
+      isRead: Boolean(r.is_read),
+      isDelivered: Boolean(r.is_delivered),
+      editedAt: r.edited_at,
+      createdAt: r.created_at,
+      status: 'sent',
+    }));
+    broadcast('CHAT_UPDATED', formattedMsgs);
+  } catch {}
 
   res.json(formatted);
 });

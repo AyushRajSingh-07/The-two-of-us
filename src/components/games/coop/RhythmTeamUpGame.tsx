@@ -3,12 +3,20 @@ import { ArrowLeft, Play, RotateCcw, Heart, Sparkles, Trophy, Music } from 'luci
 import { useAuth } from '../../../context/AuthContext';
 import { fireHeartConfetti } from '../../common/Confetti';
 import { SessionInviteBar } from '../../common/SessionInviteBar';
+import { DataStore } from '../../../lib/store';
 
 interface NoteItem {
   id: number;
   lane: 1 | 2;
   yPercent: number; // 0 to 100
   hit: boolean;
+}
+
+interface RhythmSyncState {
+  isPlaying: boolean;
+  score: number;
+  combo: number;
+  isFinished: boolean;
 }
 
 export const RhythmTeamUpGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
@@ -25,6 +33,54 @@ export const RhythmTeamUpGame: React.FC<{ onBack: () => void }> = ({ onBack }) =
   const requestRef = useRef<number | null>(null);
   const nextNoteIdRef = useRef(1);
 
+  // Sync state with partner
+  useEffect(() => {
+    DataStore.getGameSession<RhythmSyncState>(sessionId).then((s) => {
+      if (s?.data) {
+        setScore(s.data.score || 0);
+        setCombo(s.data.combo || 0);
+        if (s.data.isFinished) setIsFinished(true);
+      }
+    });
+
+    const unsub = DataStore.onSync((e) => {
+      if (e.type === 'GAME_UPDATED' && (e.payload?.sessionId === sessionId || e.payload?.gameId === 'rhythm_sync')) {
+        const incoming = e.payload?.data !== undefined ? e.payload.data : e.payload?.payload;
+        if (incoming) {
+          if (incoming.score !== undefined) setScore(incoming.score);
+          if (incoming.combo !== undefined) setCombo(incoming.combo);
+          if (incoming.isPlaying && !isPlaying) {
+            setIsPlaying(true);
+            setNotes([]);
+            setIsFinished(false);
+          }
+          if (incoming.isFinished) {
+            setIsPlaying(false);
+            setIsFinished(true);
+            fireHeartConfetti();
+          }
+        }
+      }
+    });
+    return unsub;
+  }, [sessionId, isPlaying]);
+
+  const syncState = (updates: Partial<RhythmSyncState>) => {
+    DataStore.updateGameSession<RhythmSyncState>({
+      sessionId,
+      gameId: 'rhythm_sync',
+      status: updates.isFinished ? 'completed' : 'in_progress',
+      data: {
+        isPlaying: updates.isPlaying !== undefined ? updates.isPlaying : isPlaying,
+        score: updates.score !== undefined ? updates.score : score,
+        combo: updates.combo !== undefined ? updates.combo : combo,
+        isFinished: updates.isFinished !== undefined ? updates.isFinished : isFinished,
+      },
+      lastUpdatedBy: currentUser.id,
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
   const startGame = () => {
     setIsPlaying(true);
     setNotes([]);
@@ -32,6 +88,7 @@ export const RhythmTeamUpGame: React.FC<{ onBack: () => void }> = ({ onBack }) =
     setScore(0);
     setLastRating(null);
     setIsFinished(false);
+    syncState({ isPlaying: true, score: 0, combo: 0, isFinished: false });
   };
 
   // Game loop
@@ -43,6 +100,7 @@ export const RhythmTeamUpGame: React.FC<{ onBack: () => void }> = ({ onBack }) =
       setIsPlaying(false);
       setIsFinished(true);
       fireHeartConfetti();
+      syncState({ isPlaying: false, isFinished: true, score, combo });
     }, 28000); // ~28 second song session
 
     const loop = () => {
@@ -96,9 +154,12 @@ export const RhythmTeamUpGame: React.FC<{ onBack: () => void }> = ({ onBack }) =
         if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15);
       }
 
-      setScore((s) => s + pts + combo * 10);
-      setCombo((c) => c + 1);
+      const newScore = score + pts + combo * 10;
+      const newCombo = combo + 1;
+      setScore(newScore);
+      setCombo(newCombo);
       setLastRating(rating);
+      syncState({ score: newScore, combo: newCombo });
 
       // Mark hit
       setNotes((prev) =>

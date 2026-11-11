@@ -52,8 +52,9 @@ export const GardenGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     });
 
     const unsub = DataStore.onSync((e) => {
-      if (e.type === 'GAME_UPDATED' && e.payload?.gameId === 'shared_garden') {
-        setGarden(e.payload.data);
+      if (e.type === 'GAME_UPDATED' && (e.payload?.sessionId === sessionId || e.payload?.gameId === 'shared_garden' || e.payload?.gameTitle === 'shared_garden')) {
+        const incoming = e.payload?.data !== undefined ? e.payload.data : e.payload?.payload;
+        if (incoming) setGarden(incoming);
       }
     });
     return unsub;

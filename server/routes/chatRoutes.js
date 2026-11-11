@@ -6,7 +6,7 @@ import { broadcast } from '../websocket.js';
 
 export const chatRouter = Router();
 
-function formatMessage(row) {
+function formatMessage(row, couple = null) {
   if (!row) return null;
   let parsedReactions = {};
   try {
@@ -15,13 +15,23 @@ function formatMessage(row) {
     parsedReactions = {};
   }
 
+  const space = couple || db.prepare('SELECT partner1_name, partner1_avatar, partner2_name, partner2_avatar FROM couple_space WHERE id = ?').get('couple-space-default');
+  let activeAvatar = row.sender_avatar;
+  if (space) {
+    if (row.sender_id === 'partner-1' || row.sender_name === space.partner1_name) {
+      activeAvatar = space.partner1_avatar || activeAvatar;
+    } else if (row.sender_id === 'partner-2' || row.sender_name === space.partner2_name) {
+      activeAvatar = space.partner2_avatar || activeAvatar;
+    }
+  }
+
   return {
     id: row.id,
     clientMessageId: row.client_message_id || undefined,
     spaceId: 'couple-space-default',
     senderId: row.sender_id,
     senderName: row.sender_name,
-    senderAvatar: row.sender_avatar,
+    senderAvatar: activeAvatar,
     text: row.text,
     imageUrl: row.image_url,
     replyToId: row.reply_to_id,
@@ -37,8 +47,9 @@ function formatMessage(row) {
 }
 
 function getAllMessages() {
+  const couple = db.prepare('SELECT partner1_name, partner1_avatar, partner2_name, partner2_avatar FROM couple_space WHERE id = ?').get('couple-space-default');
   const rows = db.prepare('SELECT * FROM chat_messages ORDER BY created_at ASC').all();
-  return rows.map(formatMessage);
+  return rows.map((r) => formatMessage(r, couple));
 }
 
 function getOptionalUser(req) {
@@ -77,7 +88,10 @@ chatRouter.post('/messages', (req, res) => {
 
   const actualSenderId = dbUser?.id || user?.id || senderId || 'partner-1';
   const actualSenderName = dbUser?.display_name || user?.displayName || senderName || 'Ayush';
-  const actualSenderAvatar = dbUser?.avatar || senderAvatar || '';
+  const space = db.prepare('SELECT partner1_name, partner1_avatar, partner2_name, partner2_avatar FROM couple_space WHERE id = ?').get('couple-space-default');
+  const actualSenderAvatar = (actualSenderId === 'partner-1' || actualSenderName === space?.partner1_name)
+    ? (space?.partner1_avatar || dbUser?.avatar || senderAvatar || '')
+    : (space?.partner2_avatar || dbUser?.avatar || senderAvatar || '');
 
   const msgId = 'msg-' + randomUUID();
   const now = getNowISO();

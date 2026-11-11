@@ -69,10 +69,12 @@ export const DrawAndGuessGame: React.FC<{ onBack: () => void }> = ({ onBack }) =
     });
 
     const unsub = DataStore.onSync((e) => {
-      if (e.type === 'GAME_UPDATED' && e.payload?.gameId === 'draw_guess') {
-        const newData = e.payload.data as DrawGameState;
-        setGameState(newData);
-        redrawAllLines(newData.lines);
+      if (e.type === 'GAME_UPDATED' && (e.payload?.sessionId === sessionId || e.payload?.gameId === 'draw_guess' || e.payload?.gameTitle === 'draw_guess')) {
+        const newData = (e.payload?.data !== undefined ? e.payload.data : e.payload?.payload) as DrawGameState;
+        if (newData) {
+          setGameState(newData);
+          redrawAllLines(newData.lines);
+        }
       }
     });
     return unsub;

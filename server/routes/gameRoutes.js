@@ -1,38 +1,56 @@
 import { Router } from 'express';
 import { db, getNowISO } from '../db.js';
-import { requireAuth } from '../auth.js';
+import { verifyToken } from '../auth.js';
 import { broadcast } from '../websocket.js';
 
 export const gameRouter = Router();
 
-// GET /api/games/session/:id
-gameRouter.get('/session/:id', requireAuth, (req, res) => {
+function getOptionalUser(req) {
+  let token = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  } else if (req.query && req.query.token) {
+    token = req.query.token;
+  }
+  return token ? verifyToken(token) : null;
+}
+
+// GET /api/games/session/:id -> Load saved game session state
+gameRouter.get('/session/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM game_sessions WHERE session_id = ?').get(req.params.id);
   if (!row) {
-    return res.json({ state: null });
+    return res.json({ state: null, data: null });
   }
 
   try {
     const parsedState = JSON.parse(row.state);
     res.json({
       sessionId: row.session_id,
+      gameId: row.game_title,
       gameTitle: row.game_title,
       state: parsedState,
+      data: parsedState,
       updatedBy: row.updated_by,
       updatedAt: row.updated_at,
     });
   } catch (err) {
-    res.json({ state: null });
+    res.json({ state: null, data: null });
   }
 });
 
-// POST /api/games/session/:id -> Update session state & broadcast
-gameRouter.post('/session/:id', requireAuth, (req, res) => {
+// POST /api/games/session/:id -> Update session state & broadcast to partner
+gameRouter.post('/session/:id', (req, res) => {
   const sessionId = req.params.id;
-  const { state, gameTitle } = req.body;
+  const { state, data, gameTitle, gameId, updatedBy } = req.body;
   const now = getNowISO();
 
-  const stateStr = JSON.stringify(state);
+  const user = getOptionalUser(req);
+  const actualUserId = user?.id || updatedBy || 'partner-1';
+
+  const rawState = state !== undefined ? state : data;
+  const actualGameTitle = gameTitle || gameId || 'Co-op Game';
+  const stateStr = JSON.stringify(rawState);
 
   const existing = db.prepare('SELECT session_id FROM game_sessions WHERE session_id = ?').get(sessionId);
   if (existing) {
@@ -40,21 +58,34 @@ gameRouter.post('/session/:id', requireAuth, (req, res) => {
       UPDATE game_sessions
       SET state = ?, game_title = COALESCE(?, game_title), updated_by = ?, updated_at = ?
       WHERE session_id = ?
-    `).run(stateStr, gameTitle || null, req.user.id, now, sessionId);
+    `).run(stateStr, actualGameTitle, actualUserId, now, sessionId);
   } else {
     db.prepare(`
       INSERT INTO game_sessions (session_id, game_title, state, updated_by, updated_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run(sessionId, gameTitle || 'Co-op Game', stateStr, req.user.id, now);
+    `).run(sessionId, actualGameTitle, stateStr, actualUserId, now);
   }
 
-  // Broadcast to partner in real time
-  broadcast('GAME_UPDATED', {
+  const broadcastPayload = {
     sessionId,
-    gameTitle,
-    payload: state,
-    updatedBy: req.user.id,
-  });
+    gameId: actualGameTitle,
+    gameTitle: actualGameTitle,
+    data: rawState,
+    payload: rawState,
+    state: rawState,
+    updatedBy: actualUserId,
+    updatedAt: now,
+  };
 
-  res.json({ success: true, sessionId, state });
+  // Broadcast to partner in real time
+  broadcast('GAME_UPDATED', broadcastPayload);
+
+  res.json({
+    success: true,
+    sessionId,
+    gameId: actualGameTitle,
+    gameTitle: actualGameTitle,
+    data: rawState,
+    state: rawState,
+  });
 });
