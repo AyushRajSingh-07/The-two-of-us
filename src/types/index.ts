@@ -43,6 +43,7 @@ export interface ReactionRecord {
 
 export interface ChatMessage {
   id: string;
+  clientMessageId?: string;
   spaceId: string;
   senderId: string;
   senderName: string;
@@ -57,7 +58,7 @@ export interface ChatMessage {
   isDelivered: boolean;
   createdAt: string;
   editedAt?: string;
-  status?: 'sending' | 'sent' | 'failed';
+  status?: 'sending' | 'sent' | 'failed' | 'retrying';
   error?: string;
 }
 

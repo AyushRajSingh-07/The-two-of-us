@@ -17,6 +17,7 @@ function formatMessage(row) {
 
   return {
     id: row.id,
+    clientMessageId: row.client_message_id || undefined,
     spaceId: 'couple-space-default',
     senderId: row.sender_id,
     senderName: row.sender_name,
@@ -58,9 +59,17 @@ chatRouter.get('/messages', (req, res) => {
 
 // POST /api/chat/messages -> Save message directly to SQLite before broadcasting
 chatRouter.post('/messages', (req, res) => {
-  const { text, imageUrl, replyToId, replyToText, replyToSender, senderId, senderName, senderAvatar } = req.body;
+  const { text, imageUrl, replyToId, replyToText, replyToSender, senderId, senderName, senderAvatar, clientMessageId } = req.body;
   if (!text && !imageUrl) {
     return res.status(400).json({ error: 'Message cannot be empty.' });
+  }
+
+  // Idempotency check: if clientMessageId was already saved (e.g. retry after network timeout), return existing
+  if (clientMessageId) {
+    const existing = db.prepare('SELECT * FROM chat_messages WHERE client_message_id = ?').get(clientMessageId);
+    if (existing) {
+      return res.status(200).json(formatMessage(existing));
+    }
   }
 
   const user = getOptionalUser(req);
@@ -73,24 +82,36 @@ chatRouter.post('/messages', (req, res) => {
   const msgId = 'msg-' + randomUUID();
   const now = getNowISO();
 
-  db.prepare(`
-    INSERT INTO chat_messages (
-      id, sender_id, sender_name, sender_avatar,
-      text, image_url, reply_to_id, reply_to_text, reply_to_sender,
-      reactions, is_read, is_delivered, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '{}', 0, 1, ?)
-  `).run(
-    msgId,
-    actualSenderId,
-    actualSenderName,
-    actualSenderAvatar,
-    text || '',
-    imageUrl || null,
-    replyToId || null,
-    replyToText || null,
-    replyToSender || null,
-    now
-  );
+  try {
+    db.prepare(`
+      INSERT INTO chat_messages (
+        id, client_message_id, sender_id, sender_name, sender_avatar,
+        text, image_url, reply_to_id, reply_to_text, reply_to_sender,
+        reactions, is_read, is_delivered, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '{}', 0, 1, ?)
+    `).run(
+      msgId,
+      clientMessageId || null,
+      actualSenderId,
+      actualSenderName,
+      actualSenderAvatar,
+      text || '',
+      imageUrl || null,
+      replyToId || null,
+      replyToText || null,
+      replyToSender || null,
+      now
+    );
+  } catch (err) {
+    // If unique constraint race on client_message_id
+    if (clientMessageId && err.message && err.message.includes('UNIQUE')) {
+      const existing = db.prepare('SELECT * FROM chat_messages WHERE client_message_id = ?').get(clientMessageId);
+      if (existing) {
+        return res.status(200).json(formatMessage(existing));
+      }
+    }
+    throw err;
+  }
 
   const created = db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(msgId);
   const formatted = formatMessage(created);
@@ -164,7 +185,10 @@ chatRouter.post('/read', (req, res) => {
   const user = getOptionalUser(req);
   const readerId = user?.id || req.body?.readerId || 'partner-2';
 
-  db.prepare('UPDATE chat_messages SET is_read = 1 WHERE sender_id != ? AND is_read = 0').run(readerId);
-  broadcast('CHAT_UPDATED', getAllMessages());
-  res.json({ success: true });
+  const result = db.prepare('UPDATE chat_messages SET is_read = 1 WHERE sender_id != ? AND is_read = 0').run(readerId);
+  // Only broadcast if rows actually changed, preventing infinite read-broadcast storms
+  if (result.changes > 0) {
+    broadcast('CHAT_UPDATED', getAllMessages());
+  }
+  res.json({ success: true, updated: result.changes });
 });

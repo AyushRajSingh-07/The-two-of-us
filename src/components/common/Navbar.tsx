@@ -149,14 +149,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenServerModal}
               title={isServerOnline ? "Connected to Backend Server (Click to view/edit ngrok URL)" : "Backend Offline - Click to configure ngrok URL"}
-              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-xl border transition shadow-2xs ${
+              className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 text-[11px] font-semibold rounded-xl border transition shadow-2xs ${
                 isServerOnline
                   ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
                   : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40'
               }`}
             >
               <span className={`w-2 h-2 rounded-full ${isServerOnline ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
-              <span>{isServerOnline ? 'Live Backend' : 'Connect Server'}</span>
+              <span className="hidden sm:inline">{isServerOnline ? 'Live Backend' : 'Connect Server'}</span>
+              <span className="sm:hidden">{isServerOnline ? 'Live' : 'Offline'}</span>
             </button>
 
             {/* Quick Switcher for Testing/Co-op */}

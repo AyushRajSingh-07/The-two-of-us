@@ -264,7 +264,7 @@ export const DataStore = {
 
   async sendMessage(msg: Omit<ChatMessage, 'id' | 'createdAt' | 'reactions' | 'isRead' | 'isDelivered'>): Promise<ChatMessage> {
     try {
-      // 1. Save directly to shared SQLite database
+      // 1. Save directly to shared SQLite database with idempotency clientMessageId
       const sent = await Api.sendMessage({
         text: msg.text,
         imageUrl: msg.imageUrl,
@@ -274,10 +274,12 @@ export const DataStore = {
         senderId: msg.senderId,
         senderName: msg.senderName,
         senderAvatar: msg.senderAvatar,
+        clientMessageId: msg.clientMessageId,
       });
 
       const formatted: ChatMessage = {
         id: sent.id,
+        clientMessageId: sent.clientMessageId || msg.clientMessageId,
         spaceId: msg.spaceId,
         senderId: sent.senderId || sent.sender_id || msg.senderId,
         senderName: sent.senderName || sent.sender_name || msg.senderName,
@@ -355,24 +357,25 @@ export const DataStore = {
   },
 
   async markMessagesAsRead(spaceId: string, currentUserId: string): Promise<void> {
+    const current = loadLocal<ChatMessage[]>('chat_messages', DEFAULT_MESSAGES);
+    const hasUnread = current.some(m => m.senderId !== currentUserId && !m.isRead);
+
     try {
-      await Api.markMessagesRead();
+      if (hasUnread) {
+        await Api.markMessagesRead();
+      }
     } catch (err) {
       console.warn('[DataStore] Backend markMessagesRead error:', err);
     }
 
-    const current = loadLocal<ChatMessage[]>('chat_messages', DEFAULT_MESSAGES);
-    let changed = false;
-    const updated = current.map(m => {
-      if (m.senderId !== currentUserId && !m.isRead) {
-        changed = true;
-        return { ...m, isRead: true };
-      }
-      return m;
-    });
-    if (changed) {
+    if (hasUnread) {
+      const updated = current.map(m => {
+        if (m.senderId !== currentUserId && !m.isRead) {
+          return { ...m, isRead: true };
+        }
+        return m;
+      });
       saveLocal('chat_messages', updated);
-      notifySync('CHAT_UPDATED', updated);
     }
   },
 

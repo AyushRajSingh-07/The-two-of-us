@@ -114,13 +114,20 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
 }
 
 // -------------------------------------------------------------
-// Realtime WebSocket Client
+// Realtime WebSocket Client with Heartbeat & Auto-Reconnect
 // -------------------------------------------------------------
 type SyncListener = (event: { type: string; payload?: any }) => void;
 const listeners = new Set<SyncListener>();
 let ws: WebSocket | null = null;
 let reconnectTimer: any = null;
+let heartbeatTimer: any = null;
 let isIntentionallyClosed = false;
+let reconnectAttempts = 0;
+let currentConnectionState: 'connected' | 'connecting' | 'disconnected' = 'disconnected';
+
+export function getConnectionState(): 'connected' | 'connecting' | 'disconnected' {
+  return currentConnectionState;
+}
 
 export function onBackendSync(callback: SyncListener): () => void {
   listeners.add(callback);
@@ -139,6 +146,24 @@ function dispatchSyncEvent(type: string, payload?: any) {
   });
 }
 
+function startHeartbeat() {
+  stopHeartbeat();
+  heartbeatTimer = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify({ type: 'PING' }));
+      } catch {}
+    }
+  }, 20000);
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
 export function connectWebSocket() {
   if (typeof window === 'undefined') return;
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
@@ -146,6 +171,9 @@ export function connectWebSocket() {
   }
 
   isIntentionallyClosed = false;
+  currentConnectionState = 'connecting';
+  dispatchSyncEvent('BACKEND_CONNECTING');
+
   const baseUrl = getBackendUrl();
   const token = getAuthToken();
 
@@ -158,6 +186,9 @@ export function connectWebSocket() {
 
     ws.onopen = () => {
       console.log('[WS] Connected to Sanctuary Backend:', wsUrl);
+      currentConnectionState = 'connected';
+      reconnectAttempts = 0;
+      startHeartbeat();
       dispatchSyncEvent('BACKEND_CONNECTED', { url: baseUrl });
 
       // Automatically reconcile canonical history & status on connect / reconnect
@@ -177,6 +208,10 @@ export function connectWebSocket() {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
+        if (msg.type === 'PONG') {
+          // Heartbeat acknowledged
+          return;
+        }
         if (msg.type) {
           dispatchSyncEvent(msg.type, msg.payload);
         }
@@ -186,11 +221,17 @@ export function connectWebSocket() {
     };
 
     ws.onclose = () => {
+      stopHeartbeat();
+      currentConnectionState = 'disconnected';
       dispatchSyncEvent('BACKEND_DISCONNECTED');
       if (!isIntentionallyClosed) {
-        // Reconnect after 3 seconds
+        reconnectAttempts++;
+        // Jittered backoff between 2s and 8s
+        const delay = Math.min(2000 + reconnectAttempts * 1000 + Math.random() * 500, 8000);
         if (reconnectTimer) clearTimeout(reconnectTimer);
-        reconnectTimer = setTimeout(connectWebSocket, 3000);
+        reconnectTimer = setTimeout(() => {
+          connectWebSocket();
+        }, delay);
       }
     };
 
@@ -198,6 +239,8 @@ export function connectWebSocket() {
       console.warn('[WS] Connection warning:', err);
     };
   } catch (err) {
+    stopHeartbeat();
+    currentConnectionState = 'disconnected';
     console.warn('[WS] Failed to connect WebSocket:', err);
   }
 }
@@ -209,6 +252,8 @@ export function reconnectWebSocket() {
 
 export function disconnectWebSocket() {
   isIntentionallyClosed = true;
+  stopHeartbeat();
+  currentConnectionState = 'disconnected';
   if (reconnectTimer) clearTimeout(reconnectTimer);
   if (ws) {
     try {
@@ -321,6 +366,7 @@ export const Api = {
     senderId?: string;
     senderName?: string;
     senderAvatar?: string;
+    clientMessageId?: string;
   }) {
     return apiRequest('/api/chat/messages', {
       method: 'POST',

@@ -119,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }
 
-    // Periodic reconciliation every 4.5s so PC and Phone always reflect the exact database state
+    // Quiet background reconciliation sweep every 30s as safety net without overwhelming ngrok
     const reconcileTimer = setInterval(async () => {
       try {
         const counter = await DataStore.getDailyCounterState('couple-space-default');
@@ -127,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setDailyCounter(counter);
         }
       } catch {}
-    }, 4500);
+    }, 30000);
 
     const unsub = DataStore.onSync((e) => {
       if (e.type === 'COUPLE_UPDATED' && e.payload) {

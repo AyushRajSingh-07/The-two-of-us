@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Heart, ShieldCheck, Sparkles, X, ChevronDown } from 'lucide-react';
+import { Search, Heart, ShieldCheck, Sparkles, X, ChevronDown, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ChatMessage } from '../../types';
 import { DataStore } from '../../lib/store';
+import { getConnectionState, reconnectWebSocket } from '../../lib/api';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { formatDate } from '../../lib/utils';
@@ -16,6 +17,7 @@ export const ChatView: React.FC = () => {
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [connStatus, setConnStatus] = useState<'connected' | 'connecting' | 'disconnected'>(getConnectionState());
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -27,12 +29,12 @@ export const ChatView: React.FC = () => {
       const msgs = await DataStore.getMessages(couple.id);
       setMessages((prev) => {
         // Keep any currently sending or failed messages while updating confirmed ones
-        const pending = prev.filter((m) => m.status === 'sending' || m.status === 'failed');
+        const pending = prev.filter((m) => m.status === 'sending' || m.status === 'failed' || m.status === 'retrying');
         const confirmedIds = new Set(msgs.map((m) => m.id));
         const unresolvedPending = pending.filter((m) => !confirmedIds.has(m.id));
         return [...msgs, ...unresolvedPending];
       });
-      // Mark received messages as read in shared database
+      // Mark unread received messages as read
       await DataStore.markMessagesAsRead(couple.id, currentUser.id);
     } catch (err) {
       console.warn('[ChatView] Failed to load messages:', err);
@@ -42,16 +44,16 @@ export const ChatView: React.FC = () => {
   useEffect(() => {
     loadMessages();
 
-    // Background poll fallback every 3.5s for instant sync across devices even if WebSocket dropped
+    // Quiet background poll fallback every 30s to prevent ngrok rate-limiting while maintaining eventual consistency
     const pollTimer = setInterval(() => {
       loadMessages();
-    }, 3500);
+    }, 30000);
 
     const unsub = DataStore.onSync((e) => {
       if (e.type === 'CHAT_UPDATED') {
         if (Array.isArray(e.payload)) {
           setMessages((prev) => {
-            const pending = prev.filter((m) => m.status === 'sending' || m.status === 'failed');
+            const pending = prev.filter((m) => m.status === 'sending' || m.status === 'failed' || m.status === 'retrying');
             const confirmedIds = new Set(e.payload.map((m: any) => m.id));
             const unresolvedPending = pending.filter((m) => !confirmedIds.has(m.id));
             return [...e.payload, ...unresolvedPending];
@@ -59,9 +61,13 @@ export const ChatView: React.FC = () => {
         } else {
           loadMessages();
         }
-        if (couple) DataStore.markMessagesAsRead(couple.id, currentUser.id);
       } else if (e.type === 'BACKEND_CONNECTED') {
+        setConnStatus('connected');
         loadMessages();
+      } else if (e.type === 'BACKEND_CONNECTING') {
+        setConnStatus('connecting');
+      } else if (e.type === 'BACKEND_DISCONNECTED') {
+        setConnStatus('disconnected');
       } else if (e.type === 'TYPING_STATUS') {
         if (e.payload.userId === partner.id) {
           setPartnerTyping(Boolean(e.payload.isTyping));
@@ -91,9 +97,11 @@ export const ChatView: React.FC = () => {
   const handleSendMessage = async (text: string, imageUrl?: string, replyTo?: ChatMessage) => {
     if (!couple) return;
 
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const clientMsgId = `cmsg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const tempId = `temp-${clientMsgId}`;
     const pendingMsg: ChatMessage = {
       id: tempId,
+      clientMessageId: clientMsgId,
       spaceId: couple.id,
       senderId: currentUser.id,
       senderName: currentUser.name,
@@ -114,8 +122,9 @@ export const ChatView: React.FC = () => {
     setMessages((prev) => [...prev, pendingMsg]);
 
     try {
-      // 2. Save directly to shared SQLite database
+      // 2. Save directly to shared SQLite database with clientMessageId idempotency
       const confirmed = await DataStore.sendMessage({
+        clientMessageId: clientMsgId,
         spaceId: couple.id,
         senderId: currentUser.id,
         senderName: currentUser.name,
@@ -129,14 +138,14 @@ export const ChatView: React.FC = () => {
 
       // 3. Acknowledge successful save: replace temporary item with confirmed server message
       setMessages((prev) =>
-        prev.map((m) => (m.id === tempId ? { ...confirmed, status: 'sent' } : m))
+        prev.map((m) => (m.id === tempId || m.clientMessageId === clientMsgId ? { ...confirmed, status: 'sent' } : m))
       );
     } catch (err: any) {
       console.error('[ChatView] Send message failed:', err);
-      // 4. Mark as failed with retry action
+      // 4. Mark as failed with clear retry action
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === tempId ? { ...m, status: 'failed', error: 'Failed to deliver' } : m
+          m.id === tempId ? { ...m, status: 'failed', error: 'Delivery failed. Tap to retry.' } : m
         )
       );
     }
@@ -145,13 +154,16 @@ export const ChatView: React.FC = () => {
   const handleRetry = async (failedMsg: ChatMessage) => {
     if (!couple) return;
 
-    // Set back to sending state
+    const retryClientMsgId = failedMsg.clientMessageId || `cmsg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+    // Set to retrying state
     setMessages((prev) =>
-      prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'sending', error: undefined } : m))
+      prev.map((m) => (m.id === failedMsg.id ? { ...m, clientMessageId: retryClientMsgId, status: 'retrying', error: undefined } : m))
     );
 
     try {
       const confirmed = await DataStore.sendMessage({
+        clientMessageId: retryClientMsgId,
         spaceId: couple.id,
         senderId: failedMsg.senderId,
         senderName: failedMsg.senderName,
@@ -164,12 +176,12 @@ export const ChatView: React.FC = () => {
       });
 
       setMessages((prev) =>
-        prev.map((m) => (m.id === failedMsg.id ? { ...confirmed, status: 'sent' } : m))
+        prev.map((m) => (m.id === failedMsg.id || m.clientMessageId === retryClientMsgId ? { ...confirmed, status: 'sent' } : m))
       );
     } catch (err) {
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === failedMsg.id ? { ...m, status: 'failed', error: 'Retry failed' } : m
+          m.id === failedMsg.id ? { ...m, status: 'failed', error: 'Retry failed. Check connection.' } : m
         )
       );
     }
@@ -276,6 +288,34 @@ export const ChatView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Realtime Connection Status Banner */}
+      {connStatus !== 'connected' && (
+        <div className={`px-4 py-2 flex items-center justify-between text-xs transition border-b ${
+          connStatus === 'connecting'
+            ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-900/40'
+            : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-900/40'
+        }`}>
+          <div className="flex items-center gap-2">
+            {connStatus === 'connecting' ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600 dark:text-amber-400" />
+            ) : (
+              <WifiOff className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+            )}
+            <span>
+              {connStatus === 'connecting'
+                ? 'Reconnecting to Sanctuary Backend...'
+                : 'Realtime connection lost. Messages will auto-retry upon reconnection.'}
+            </span>
+          </div>
+          <button
+            onClick={() => reconnectWebSocket()}
+            className="font-semibold underline hover:opacity-80 flex items-center gap-1 cursor-pointer"
+          >
+            <RefreshCw className="w-3 h-3" /> Reconnect Now
+          </button>
+        </div>
+      )}
 
       {/* Messages Scroll Area */}
       <div

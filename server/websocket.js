@@ -26,13 +26,24 @@ export function initWebSocket(server) {
 
     // Ping / Pong for keeping connection alive through ngrok
     ws.isAlive = true;
+    ws.missedPings = 0;
     ws.on('pong', () => {
       ws.isAlive = true;
+      ws.missedPings = 0;
     });
 
     ws.on('message', (data) => {
       try {
+        ws.isAlive = true;
+        ws.missedPings = 0;
         const msg = JSON.parse(data.toString());
+
+        // Application-level Heartbeat
+        if (msg.type === 'PING') {
+          ws.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
+          return;
+        }
+
         if (msg.type === 'AUTH') {
           const authUser = verifyToken(msg.token);
           if (authUser) {
@@ -69,15 +80,20 @@ export function initWebSocket(server) {
     });
   });
 
-  // Keepalive interval every 20s
+  // Gentle keepalive interval every 30s with missed pings tolerance
   const interval = setInterval(() => {
     if (!wss) return;
     wss.clients.forEach((ws) => {
-      if (ws.isAlive === false) return ws.terminate();
-      ws.isAlive = false;
-      ws.ping();
+      ws.missedPings = (ws.missedPings || 0) + 1;
+      // Allow 3 missed pings (90 seconds of total silence) before terminating
+      if (ws.missedPings > 3) {
+        return ws.terminate();
+      }
+      try {
+        ws.ping();
+      } catch {}
     });
-  }, 20000);
+  }, 30000);
 
   wss.on('close', () => {
     clearInterval(interval);

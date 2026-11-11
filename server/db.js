@@ -84,6 +84,7 @@ export function initDatabase() {
 
     CREATE TABLE IF NOT EXISTS chat_messages (
       id TEXT PRIMARY KEY,
+      client_message_id TEXT UNIQUE,
       sender_id TEXT NOT NULL,
       sender_name TEXT NOT NULL,
       sender_avatar TEXT,
@@ -122,6 +123,14 @@ export function initDatabase() {
       updated_at TEXT NOT NULL
     );
   `);
+
+  // Safely ensure client_message_id column exists
+  try {
+    db.prepare('ALTER TABLE chat_messages ADD COLUMN client_message_id TEXT').run();
+  } catch {}
+  try {
+    db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_client_msg_id ON chat_messages(client_message_id)').run();
+  } catch {}
 
   // Seed Couple Space if not present
   const existingCouple = db.prepare('SELECT * FROM couple_space WHERE id = ?').get('couple-space-default');
