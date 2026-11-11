@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { CoupleSpace, ChatMessage, PhotoItem, GameSessionState, SharedDailyCounterState, DailyCheckinRecord } from '../types';
 import { getKolkataDateString } from './utils';
+import { Api, onBackendSync, getAuthToken, connectWebSocket } from './api';
 
 // Default initial couple profile with reset Love Day counter and bio
 const DEFAULT_COUPLE: CoupleSpace = {
@@ -106,14 +107,10 @@ const DEFAULT_PHOTOS: PhotoItem[] = [
   }
 ];
 
-// Cross-device and cross-tab sync setup
 const LOVE_DAY_DATES_COUNTED_KEY = 'love_day_dates_counted';
 const broadcastChannel = typeof BroadcastChannel !== 'undefined' 
   ? new BroadcastChannel('two-of-us-sync')
   : null;
-
-// Track active Supabase realtime channel for game sessions
-let activeGameRealtimeChannel: any = null;
 
 // LocalStorage helpers with robust null/corruption protection
 function loadLocal<T>(key: string, fallback: T): T {
@@ -140,28 +137,59 @@ function saveLocal<T>(key: string, data: T) {
   }
 }
 
-// Global broadcast dispatcher (notifies local window, cross-tab, and local Vite SSE if available)
+// Global broadcast dispatcher
 function notifySync(type: string, payload?: any) {
   if (broadcastChannel) {
     broadcastChannel.postMessage({ type, payload });
   }
-  window.dispatchEvent(new CustomEvent('two-of-us-sync', { detail: { type, payload } }));
-
-  // Also broadcast to Vite local sync bridge for phone <-> PC local Wi-Fi testing
-  if (typeof fetch !== 'undefined' && !isSupabaseConfigured && payload?.sessionId) {
-    fetch(`/api/sync/session?sessionId=${payload.sessionId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }).catch(() => {
-      // Ignore if running standalone static build
-    });
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('two-of-us-sync', { detail: { type, payload } }));
   }
+}
+
+function mapCoupleSpaceFromBackend(data: any): CoupleSpace {
+  return {
+    id: data.id || 'couple-space-default',
+    partner1Name: data.partner1_name || data.partner1Name || 'Ayush',
+    partner1Avatar: data.partner1_avatar || data.partner1Avatar || DEFAULT_COUPLE.partner1Avatar,
+    partner1Bio: data.partner1_bio || data.partner1Bio || DEFAULT_COUPLE.partner1Bio,
+    partner2Name: data.partner2_name || data.partner2Name || 'Vrishti',
+    partner2Avatar: data.partner2_avatar || data.partner2Avatar || DEFAULT_COUPLE.partner2Avatar,
+    partner2Bio: data.partner2_bio || data.partner2Bio || DEFAULT_COUPLE.partner2Bio,
+    anniversaryDate: data.anniversary_date || data.anniversaryDate || DEFAULT_COUPLE.anniversaryDate,
+    welcomeMessage: data.welcome_message || data.welcomeMessage || DEFAULT_COUPLE.welcomeMessage,
+    inviteCode: data.invite_code || data.inviteCode || DEFAULT_COUPLE.inviteCode,
+    isPaired: Boolean(data.is_paired ?? data.isPaired ?? true),
+    sharedTimezone: data.shared_timezone || data.sharedTimezone || 'Asia/Kolkata',
+    loveDayBaseCount: data.love_day_base_count || data.loveDayBaseCount || 612,
+    loveDayBaseMigrated: Boolean(data.love_day_base_migrated ?? data.loveDayBaseMigrated ?? true),
+    reminderDailyCheckin: Boolean(data.reminder_daily_checkin ?? data.reminderDailyCheckin ?? true),
+    reminderDateNight: Boolean(data.reminder_date_night ?? data.reminderDateNight ?? true),
+    soundEffectsEnabled: Boolean(data.sound_effects_enabled ?? data.soundEffectsEnabled ?? true),
+    privatePhotosOnly: Boolean(data.private_photos_only ?? data.privatePhotosOnly ?? true),
+    allowPhotoDownloads: Boolean(data.allow_photo_downloads ?? data.allowPhotoDownloads ?? true),
+    createdAt: data.created_at || data.createdAt || new Date().toISOString(),
+  };
 }
 
 export const DataStore = {
   // Couple Space
   async getCoupleSpace(): Promise<CoupleSpace> {
+    // 1. Try real backend if token exists
+    if (getAuthToken()) {
+      try {
+        const remote = await Api.getCoupleSpace();
+        if (remote && remote.id) {
+          const space = mapCoupleSpaceFromBackend(remote);
+          saveLocal('couple_space', space);
+          return space;
+        }
+      } catch (err) {
+        console.warn('[DataStore] Backend getCoupleSpace failed, using local cache:', err);
+      }
+    }
+
+    // 2. Supabase fallback
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase
@@ -172,38 +200,17 @@ export const DataStore = {
           .maybeSingle();
 
         if (data && !error) {
-          return {
-            id: data.id,
-            partner1Name: data.partner1_name || 'Ayush',
-            partner1Avatar: data.partner1_avatar || DEFAULT_COUPLE.partner1Avatar,
-            partner1Bio: data.partner1_bio || DEFAULT_COUPLE.partner1Bio,
-            partner2Name: data.partner2_name || 'Vrishti',
-            partner2Avatar: data.partner2_avatar || DEFAULT_COUPLE.partner2Avatar,
-            partner2Bio: data.partner2_bio || DEFAULT_COUPLE.partner2Bio,
-            anniversaryDate: data.anniversary_date || DEFAULT_COUPLE.anniversaryDate,
-            welcomeMessage: data.welcome_message || DEFAULT_COUPLE.welcomeMessage,
-            inviteCode: data.invite_code || DEFAULT_COUPLE.inviteCode,
-            isPaired: data.is_paired ?? true,
-            sharedTimezone: data.shared_timezone || 'Asia/Kolkata',
-            loveDayBaseCount: data.love_day_base_count || 612,
-            loveDayBaseMigrated: data.love_day_base_migrated ?? true,
-            reminderDailyCheckin: data.reminder_daily_checkin ?? true,
-            reminderDateNight: data.reminder_date_night ?? true,
-            soundEffectsEnabled: data.sound_effects_enabled ?? true,
-            privatePhotosOnly: data.private_photos_only ?? true,
-            allowPhotoDownloads: data.allow_photo_downloads ?? true,
-            createdAt: data.created_at || new Date().toISOString(),
-          };
+          return mapCoupleSpaceFromBackend(data);
         }
       } catch (e) {
         console.warn('Supabase fetch couple error, falling back to local', e);
       }
     }
+
     let local = loadLocal<CoupleSpace>('couple_space', DEFAULT_COUPLE);
     if (!local || typeof local !== 'object') {
       local = { ...DEFAULT_COUPLE };
     }
-    // Auto-migrate legacy default names, add bio defaults, and reset Love Day counter to 612
     if (!local.partner1Bio) local.partner1Bio = DEFAULT_COUPLE.partner1Bio;
     if (!local.partner2Bio) local.partner2Bio = DEFAULT_COUPLE.partner2Bio;
     if (!local.sharedTimezone) local.sharedTimezone = 'Asia/Kolkata';
@@ -211,18 +218,23 @@ export const DataStore = {
     local.loveDayBaseMigrated = true;
     if (local.partner1Name === 'Alex') local.partner1Name = 'Ayush';
     if (local.partner2Name === 'Jordan') local.partner2Name = 'Vrishti';
-    if (local.anniversaryDate === '2024-02-14') local.anniversaryDate = getKolkataDateString();
-    if (local.reminderDailyCheckin === undefined) local.reminderDailyCheckin = true;
-    if (local.reminderDateNight === undefined) local.reminderDateNight = true;
-    if (local.soundEffectsEnabled === undefined) local.soundEffectsEnabled = true;
-    if (local.privatePhotosOnly === undefined) local.privatePhotosOnly = true;
-    if (local.allowPhotoDownloads === undefined) local.allowPhotoDownloads = true;
     saveLocal('couple_space', local);
     return local;
   },
 
   async saveCoupleSpace(space: CoupleSpace): Promise<CoupleSpace> {
     saveLocal('couple_space', space);
+
+    // 1. Try real backend
+    if (getAuthToken()) {
+      try {
+        await Api.updateCoupleSpace(space);
+      } catch (err) {
+        console.warn('[DataStore] Backend saveCoupleSpace error:', err);
+      }
+    }
+
+    // 2. Supabase fallback
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('couples').upsert({
@@ -251,12 +263,44 @@ export const DataStore = {
         console.error('Failed to sync couple space to Supabase', err);
       }
     }
+
     notifySync('COUPLE_UPDATED', space);
     return space;
   },
 
   // Chat Messages
   async getMessages(spaceId: string): Promise<ChatMessage[]> {
+    // 1. Try real backend
+    if (getAuthToken()) {
+      try {
+        const remote = await Api.getMessages();
+        if (Array.isArray(remote)) {
+          const list: ChatMessage[] = remote.map((d: any) => ({
+            id: d.id,
+            spaceId: d.spaceId || d.space_id || spaceId,
+            senderId: d.senderId || d.sender_id,
+            senderName: d.senderName || d.sender_name,
+            senderAvatar: d.senderAvatar || d.sender_avatar,
+            text: d.text || '',
+            imageUrl: d.imageUrl || d.image_url,
+            replyToId: d.replyToId || d.reply_to_id,
+            replyToText: d.replyToText || d.reply_to_text,
+            replyToSender: d.replyToSender || d.reply_to_sender,
+            reactions: (typeof d.reactions === 'string' ? JSON.parse(d.reactions || '{}') : d.reactions) || {},
+            isRead: Boolean(d.isRead ?? d.is_read),
+            isDelivered: Boolean(d.isDelivered ?? d.is_delivered ?? true),
+            createdAt: d.createdAt || d.created_at || new Date().toISOString(),
+            editedAt: d.editedAt || d.edited_at,
+          }));
+          saveLocal('chat_messages', list);
+          return list;
+        }
+      } catch (err) {
+        console.warn('[DataStore] Backend getMessages error:', err);
+      }
+    }
+
+    // 2. Supabase fallback
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase
@@ -287,10 +331,49 @@ export const DataStore = {
         console.warn('Supabase getMessages error, falling back', e);
       }
     }
+
     return loadLocal<ChatMessage[]>('chat_messages', DEFAULT_MESSAGES);
   },
 
   async sendMessage(msg: Omit<ChatMessage, 'id' | 'createdAt' | 'reactions' | 'isRead' | 'isDelivered'>): Promise<ChatMessage> {
+    // 1. Try real backend
+    if (getAuthToken()) {
+      try {
+        const sent = await Api.sendMessage({
+          text: msg.text,
+          imageUrl: msg.imageUrl,
+          replyToId: msg.replyToId,
+          replyToText: msg.replyToText,
+          replyToSender: msg.replyToSender,
+        });
+
+        const formatted: ChatMessage = {
+          id: sent.id,
+          spaceId: msg.spaceId,
+          senderId: sent.senderId || sent.sender_id || msg.senderId,
+          senderName: sent.senderName || sent.sender_name || msg.senderName,
+          senderAvatar: sent.senderAvatar || sent.sender_avatar || msg.senderAvatar,
+          text: sent.text,
+          imageUrl: sent.imageUrl || sent.image_url,
+          replyToId: sent.replyToId || sent.reply_to_id,
+          replyToText: sent.replyToText || sent.reply_to_text,
+          replyToSender: sent.replyToSender || sent.reply_to_sender,
+          reactions: sent.reactions || {},
+          isRead: Boolean(sent.isRead ?? sent.is_read),
+          isDelivered: true,
+          createdAt: sent.createdAt || sent.created_at || new Date().toISOString(),
+        };
+
+        const current = loadLocal<ChatMessage[]>('chat_messages', DEFAULT_MESSAGES);
+        const updated = [...current, formatted];
+        saveLocal('chat_messages', updated);
+        notifySync('CHAT_UPDATED', updated);
+        return formatted;
+      } catch (err) {
+        console.warn('[DataStore] Backend sendMessage error, falling back:', err);
+      }
+    }
+
     const newMessage: ChatMessage = {
       ...msg,
       id: 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
@@ -330,6 +413,14 @@ export const DataStore = {
   },
 
   async editMessage(messageId: string, newText: string): Promise<void> {
+    if (getAuthToken()) {
+      try {
+        await Api.editMessage(messageId, newText);
+      } catch (err) {
+        console.warn('[DataStore] Backend editMessage error:', err);
+      }
+    }
+
     const current = loadLocal<ChatMessage[]>('chat_messages', DEFAULT_MESSAGES);
     const updated = current.map(m => m.id === messageId ? { ...m, text: newText, editedAt: new Date().toISOString() } : m);
     saveLocal('chat_messages', updated);
@@ -345,6 +436,14 @@ export const DataStore = {
   },
 
   async deleteMessage(messageId: string): Promise<void> {
+    if (getAuthToken()) {
+      try {
+        await Api.deleteMessage(messageId);
+      } catch (err) {
+        console.warn('[DataStore] Backend deleteMessage error:', err);
+      }
+    }
+
     const current = loadLocal<ChatMessage[]>('chat_messages', DEFAULT_MESSAGES);
     const updated = current.filter(m => m.id !== messageId);
     saveLocal('chat_messages', updated);
@@ -360,6 +459,14 @@ export const DataStore = {
   },
 
   async toggleReaction(messageId: string, emoji: string, userId: string): Promise<void> {
+    if (getAuthToken()) {
+      try {
+        await Api.toggleReaction(messageId, emoji);
+      } catch (err) {
+        console.warn('[DataStore] Backend toggleReaction error:', err);
+      }
+    }
+
     const current = loadLocal<ChatMessage[]>('chat_messages', DEFAULT_MESSAGES);
     const updated = current.map(m => {
       if (m.id !== messageId) return m;
@@ -389,6 +496,14 @@ export const DataStore = {
   },
 
   async markMessagesAsRead(spaceId: string, currentUserId: string): Promise<void> {
+    if (getAuthToken()) {
+      try {
+        await Api.markMessagesRead();
+      } catch (err) {
+        console.warn('[DataStore] Backend markMessagesRead error:', err);
+      }
+    }
+
     const current = loadLocal<ChatMessage[]>('chat_messages', DEFAULT_MESSAGES);
     let changed = false;
     const updated = current.map(m => {
@@ -413,6 +528,30 @@ export const DataStore = {
 
   // Photos
   async getPhotos(spaceId: string): Promise<PhotoItem[]> {
+    if (getAuthToken()) {
+      try {
+        const remote = await Api.getPhotos();
+        if (Array.isArray(remote)) {
+          const mapped: PhotoItem[] = remote.map((d: any) => ({
+            id: d.id,
+            spaceId: d.spaceId || d.space_id || spaceId,
+            uploaderId: d.uploaderId || d.uploader_id,
+            uploaderName: d.uploaderName || d.uploader_name,
+            url: d.url,
+            caption: d.caption || '',
+            dateTaken: d.dateTaken || d.date_taken,
+            album: d.album || 'General',
+            isFavorite: Boolean(d.isFavorite ?? d.is_favorite),
+            createdAt: d.createdAt || d.created_at || new Date().toISOString(),
+          }));
+          saveLocal('photos', mapped);
+          return mapped;
+        }
+      } catch (err) {
+        console.warn('[DataStore] Backend getPhotos error:', err);
+      }
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase
@@ -441,7 +580,49 @@ export const DataStore = {
     return loadLocal<PhotoItem[]>('photos', DEFAULT_PHOTOS);
   },
 
-  async uploadPhoto(item: Omit<PhotoItem, 'id' | 'createdAt'>): Promise<PhotoItem> {
+  async uploadPhoto(item: Omit<PhotoItem, 'id' | 'createdAt'> & { file?: File }): Promise<PhotoItem> {
+    if (getAuthToken()) {
+      try {
+        let uploaded: any;
+        if (item.file) {
+          uploaded = await Api.uploadPhoto(item.file, {
+            caption: item.caption,
+            album: item.album,
+            dateTaken: item.dateTaken,
+          });
+        } else if (item.url) {
+          uploaded = await Api.uploadPhotoUrl(item.url, {
+            caption: item.caption,
+            album: item.album,
+            dateTaken: item.dateTaken,
+          });
+        }
+
+        if (uploaded && uploaded.id) {
+          const newPhoto: PhotoItem = {
+            id: uploaded.id,
+            spaceId: item.spaceId,
+            uploaderId: uploaded.uploaderId || uploaded.uploader_id || item.uploaderId,
+            uploaderName: uploaded.uploaderName || uploaded.uploader_name || item.uploaderName,
+            url: uploaded.url,
+            caption: uploaded.caption || item.caption,
+            album: uploaded.album || item.album,
+            dateTaken: uploaded.dateTaken || uploaded.date_taken || item.dateTaken,
+            isFavorite: Boolean(uploaded.isFavorite ?? uploaded.is_favorite),
+            createdAt: uploaded.createdAt || uploaded.created_at || new Date().toISOString(),
+          };
+
+          const current = loadLocal<PhotoItem[]>('photos', DEFAULT_PHOTOS);
+          const updated = [newPhoto, ...current];
+          saveLocal('photos', updated);
+          notifySync('PHOTOS_UPDATED', updated);
+          return newPhoto;
+        }
+      } catch (err) {
+        console.warn('[DataStore] Backend photo upload error:', err);
+      }
+    }
+
     const newPhoto: PhotoItem = {
       ...item,
       id: 'photo-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
@@ -474,6 +655,14 @@ export const DataStore = {
   },
 
   async toggleFavoritePhoto(photoId: string): Promise<void> {
+    if (getAuthToken()) {
+      try {
+        await Api.toggleFavoritePhoto(photoId);
+      } catch (err) {
+        console.warn('[DataStore] Backend toggleFavoritePhoto error:', err);
+      }
+    }
+
     const current = loadLocal<PhotoItem[]>('photos', DEFAULT_PHOTOS);
     const updated = current.map(p => p.id === photoId ? { ...p, isFavorite: !p.isFavorite } : p);
     saveLocal('photos', updated);
@@ -492,6 +681,14 @@ export const DataStore = {
   },
 
   async deletePhoto(photoId: string): Promise<void> {
+    if (getAuthToken()) {
+      try {
+        await Api.deletePhoto(photoId);
+      } catch (err) {
+        console.warn('[DataStore] Backend deletePhoto error:', err);
+      }
+    }
+
     const current = loadLocal<PhotoItem[]>('photos', DEFAULT_PHOTOS);
     const updated = current.filter(p => p.id !== photoId);
     saveLocal('photos', updated);
@@ -508,6 +705,25 @@ export const DataStore = {
 
   // Game Sessions (Multiplayer Co-op cross-device synchronization)
   async getGameSession<T = any>(sessionId: string): Promise<GameSessionState<T> | null> {
+    if (getAuthToken()) {
+      try {
+        const row = await Api.getGameSession(sessionId);
+        if (row && row.sessionId) {
+          return {
+            sessionId: row.sessionId,
+            gameId: row.gameId,
+            currentTurnUserId: row.currentTurnUserId,
+            status: row.status,
+            data: row.data,
+            lastUpdatedBy: row.lastUpdatedBy,
+            updatedAt: row.updatedAt,
+          };
+        }
+      } catch (err) {
+        console.warn('[DataStore] Backend getGameSession error:', err);
+      }
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase
@@ -532,41 +748,22 @@ export const DataStore = {
       }
     }
 
-    // Try fetching from Vite local sync bridge (for Phone <-> PC over local Wi-Fi)
-    if (typeof fetch !== 'undefined' && !isSupabaseConfigured) {
-      try {
-        const res = await fetch(`/api/sync/session?sessionId=${sessionId}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json?.data) return json.data;
-        }
-      } catch {
-        // Fallback to local
-      }
-    }
-
     return loadLocal<GameSessionState<T> | null>(`game_session_${sessionId}`, null);
   },
 
   async updateGameSession<T = any>(session: GameSessionState<T>): Promise<void> {
     saveLocal(`game_session_${session.sessionId}`, session);
 
+    if (getAuthToken()) {
+      try {
+        await Api.updateGameSession(session.sessionId, session.data, session.gameId);
+      } catch (err) {
+        console.warn('[DataStore] Backend updateGameSession error:', err);
+      }
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
-        // Ensure realtime channel is subscribed
-        if (!activeGameRealtimeChannel || activeGameRealtimeChannel.topic !== `game_${session.sessionId}`) {
-          activeGameRealtimeChannel = supabase.channel(`game_${session.sessionId}`);
-          activeGameRealtimeChannel.subscribe();
-        }
-
-        // Fast broadcast to partner phone/PC
-        activeGameRealtimeChannel.send({
-          type: 'broadcast',
-          event: 'GAME_UPDATED',
-          payload: session,
-        });
-
-        // Persist in Postgres DB
         await supabase.from('game_sessions').upsert({
           id: session.sessionId,
           game_id: session.gameId,
@@ -586,17 +783,27 @@ export const DataStore = {
 
   // Shared Daily Login Check-in Counter (Asia/Kolkata timezone with 612 baseline)
   async getDailyCounterState(spaceId: string): Promise<SharedDailyCounterState> {
+    if (getAuthToken()) {
+      try {
+        const counter = await Api.getDailyCounter();
+        if (counter && counter.todayRecord) {
+          saveLocal('daily_counter_state', counter);
+          return counter;
+        }
+      } catch (err) {
+        console.warn('[DataStore] Backend getDailyCounter error:', err);
+      }
+    }
+
     const today = getKolkataDateString();
     let history: Record<string, DailyCheckinRecord> = {};
 
-    // One-time baseline migration to 612 days
     const isMigrated = loadLocal<boolean>('love_day_base_migrated_v612', false);
     if (!isMigrated) {
       saveLocal('love_day_base_count', 612);
       saveLocal('love_day_dates_counted', []);
       saveLocal('love_day_base_migrated_v612', true);
 
-      // Reset today record to pending so counter starts at 612 waiting for today's logins
       const currentHistory = loadLocal<Record<string, DailyCheckinRecord>>('daily_checkin_history', {});
       const safeHistory = (currentHistory && typeof currentHistory === 'object') ? currentHistory : {};
       safeHistory[today] = {
@@ -614,36 +821,9 @@ export const DataStore = {
       saveLocal('couple_space', couple);
     }
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('daily_checkins')
-          .select('*')
-          .order('checkin_date', { ascending: false });
+    const localHist = loadLocal<Record<string, DailyCheckinRecord>>('daily_checkin_history', {});
+    history = (localHist && typeof localHist === 'object') ? localHist : {};
 
-        if (data && !error) {
-          data.forEach((row: any) => {
-            history[row.checkin_date] = {
-              date: row.checkin_date,
-              partner1CheckedIn: Boolean(row.partner1_checked_in),
-              partner1CheckedInAt: row.partner1_checked_in_at,
-              partner2CheckedIn: Boolean(row.partner2_checked_in),
-              partner2CheckedInAt: row.partner2_checked_in_at,
-              bothCompleted: Boolean(row.both_completed),
-            };
-          });
-        }
-      } catch (e) {
-        console.warn('Supabase getDailyCounterState error', e);
-      }
-    }
-
-    if (Object.keys(history).length === 0) {
-      const localHist = loadLocal<Record<string, DailyCheckinRecord>>('daily_checkin_history', {});
-      history = (localHist && typeof localHist === 'object') ? localHist : {};
-    }
-
-    // Default today record if not exists
     if (!history[today]) {
       history[today] = {
         date: today,
@@ -658,7 +838,6 @@ export const DataStore = {
     const rawDates = loadLocal<string[]>(LOVE_DAY_DATES_COUNTED_KEY, []);
     let datesCounted = Array.isArray(rawDates) ? [...rawDates] : [];
 
-    // Sync any days where both completed into datesCounted
     let datesChanged = false;
     Object.entries(history).forEach(([dateStr, rec]) => {
       if (rec && rec.bothCompleted && !datesCounted.includes(dateStr)) {
@@ -681,6 +860,19 @@ export const DataStore = {
   },
 
   async recordDailyLogin(spaceId: string, isPartner1: boolean): Promise<SharedDailyCounterState> {
+    if (getAuthToken()) {
+      try {
+        const counter = await Api.recordDailyCheckin();
+        if (counter && counter.todayRecord) {
+          saveLocal('daily_counter_state', counter);
+          notifySync('DAILY_CHECKIN_UPDATED', counter);
+          return counter;
+        }
+      } catch (err) {
+        console.warn('[DataStore] Backend recordDailyCheckin error:', err);
+      }
+    }
+
     const today = getKolkataDateString();
     const current = await this.getDailyCounterState(spaceId);
     const history = { ...current.history };
@@ -708,7 +900,6 @@ export const DataStore = {
       }
     }
 
-    // Check if both completed today
     if (todayRecord.partner1CheckedIn && todayRecord.partner2CheckedIn && !todayRecord.bothCompleted) {
       todayRecord.bothCompleted = true;
       changed = true;
@@ -726,25 +917,6 @@ export const DataStore = {
       saveLocal('love_day_dates_counted', datesCounted);
     }
 
-    if (isSupabaseConfigured && supabase && changed) {
-      try {
-        await supabase.from('daily_checkins').upsert({
-          space_id: spaceId.startsWith('couple-space') ? null : spaceId,
-          checkin_date: today,
-          partner1_checked_in: todayRecord.partner1CheckedIn,
-          partner1_checked_in_at: todayRecord.partner1CheckedInAt,
-          partner2_checked_in: todayRecord.partner2CheckedIn,
-          partner2_checked_in_at: todayRecord.partner2CheckedInAt,
-          both_completed: todayRecord.bothCompleted,
-          updated_at: nowIso,
-        }, {
-          onConflict: 'space_id,checkin_date',
-        });
-      } catch (e) {
-        console.error('Supabase daily checkin upsert error', e);
-      }
-    }
-
     const updatedSharedCount = baseCount + datesCounted.length;
     const result: SharedDailyCounterState = {
       sharedCount: updatedSharedCount,
@@ -759,8 +931,17 @@ export const DataStore = {
     return result;
   },
 
-  // Event Listeners for Real-time Reactive Updates (Cross-device, Cross-tab, Local)
+  // Real-time Event Listeners
   onSync(callback: (event: { type: string; payload?: any }) => void) {
+    // 1. Connect WebSocket to backend if not connected
+    connectWebSocket();
+
+    // 2. Listen to WebSocket events from backend
+    const unsubWs = onBackendSync((event) => {
+      callback(event);
+    });
+
+    // 3. Local cross-tab BroadcastChannel
     const handleBroadcast = (ev: MessageEvent) => callback(ev.data);
     const handleCustom = (ev: Event) => {
       const custom = ev as CustomEvent;
@@ -770,42 +951,18 @@ export const DataStore = {
     if (broadcastChannel) {
       broadcastChannel.addEventListener('message', handleBroadcast);
     }
-    window.addEventListener('two-of-us-sync', handleCustom);
-
-    // If on Vite local Wi-Fi dev server, subscribe to SSE stream
-    let sseSource: EventSource | null = null;
-    if (typeof EventSource !== 'undefined' && !isSupabaseConfigured) {
-      try {
-        sseSource = new EventSource('/api/sync/stream');
-        sseSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data?.type === 'GAME_UPDATED') {
-              callback(data);
-            }
-          } catch {}
-        };
-      } catch {}
-    }
-
-    // If Supabase is configured, subscribe to Supabase broadcast channel
-    let supabaseChannel: any = null;
-    if (isSupabaseConfigured && supabase) {
-      supabaseChannel = supabase
-        .channel('couple_global_sync')
-        .on('broadcast', { event: 'GAME_UPDATED' }, (payload: any) => {
-          callback({ type: 'GAME_UPDATED', payload: payload.payload });
-        })
-        .subscribe();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('two-of-us-sync', handleCustom);
     }
 
     return () => {
+      unsubWs();
       if (broadcastChannel) {
         broadcastChannel.removeEventListener('message', handleBroadcast);
       }
-      window.removeEventListener('two-of-us-sync', handleCustom);
-      if (sseSource) sseSource.close();
-      if (supabaseChannel && supabase) supabase.removeChannel(supabaseChannel);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('two-of-us-sync', handleCustom);
+      }
     };
   }
 };

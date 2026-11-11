@@ -3,4 +3,14 @@ dist
 dist-ssr
 *.local
 .env
+.env.*
+!.env.example
+!server/.env.example
 .DS_Store
+server/data/*.db
+server/data/*.db-journal
+server/data/*.db-wal
+server/data/*.db-shm
+!server/data/.gitkeep
+server/uploads/*
+!server/uploads/.gitkeep

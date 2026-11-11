@@ -4,6 +4,8 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { Navbar } from './components/common/Navbar';
 import { SettingsModal } from './components/common/SettingsModal';
 import { PairingScreen } from './components/common/PairingScreen';
+import { LoginScreen } from './components/common/LoginScreen';
+import { ServerConnectionModal } from './components/common/ServerConnectionModal';
 import { DailyLoginCounter } from './components/common/DailyLoginCounter';
 import { GamesHub } from './components/games/GamesHub';
 import { ChatView } from './components/chat/ChatView';
@@ -15,9 +17,10 @@ import { Heart, Sparkles, MessageCircle, Gamepad2, Image } from 'lucide-react';
 import { calculateTimeTogether } from './lib/utils';
 
 const MainAppContent: React.FC = () => {
-  const { couple, currentUser, isPaired, isPartner1Active, switchActiveUser, dailyCounter } = useAuth();
+  const { couple, currentUser, isPaired, isPartner1Active, switchActiveUser, dailyCounter, isAuthenticated, loginUser, setOfflineMode } = useAuth();
   const [activeTab, setActiveTab] = useState<'games' | 'chat' | 'photos' | 'profile' | 'settings'>('games');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pairedOverride, setPairedOverride] = useState(false);
 
@@ -54,6 +57,11 @@ const MainAppContent: React.FC = () => {
     return unsub;
   }, [couple?.id, currentUser.id]);
 
+  // Authentication gate for private couple access
+  if (!isAuthenticated) {
+    return <LoginScreen onLoginSuccess={loginUser} onContinueOffline={setOfflineMode} />;
+  }
+
   // If space is marked as not paired yet
   if (!isPaired && !pairedOverride) {
     return <PairingScreen onPaired={() => setPairedOverride(true)} />;
@@ -68,6 +76,7 @@ const MainAppContent: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenSettings={() => setActiveTab('settings')}
+        onOpenServerModal={() => setIsServerModalOpen(true)}
         unreadCount={unreadCount}
       />
 
@@ -104,8 +113,19 @@ const MainAppContent: React.FC = () => {
         {activeTab === 'chat' && <ChatView />}
         {activeTab === 'photos' && <PhotosView />}
         {activeTab === 'profile' && <ProfileView />}
-        {activeTab === 'settings' && <SettingsView onNavigateToProfile={() => setActiveTab('profile')} />}
+        {activeTab === 'settings' && (
+          <SettingsView
+            onNavigateToProfile={() => setActiveTab('profile')}
+            onOpenServerModal={() => setIsServerModalOpen(true)}
+          />
+        )}
       </main>
+
+      {/* Sanctuary Server & ngrok Connection Modal */}
+      <ServerConnectionModal
+        isOpen={isServerModalOpen}
+        onClose={() => setIsServerModalOpen(false)}
+      />
 
       {/* Settings Modal (kept for backward compatibility or quick popup if invoked) */}
       <SettingsModal

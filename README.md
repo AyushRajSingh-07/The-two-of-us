@@ -1,6 +1,45 @@
 # Two of Us • Our Private Couples' Sanctuary 💕
 
-A complete, private, full-stack couples' web app designed as a romantic gift. Built with **React 18 + TypeScript + Vite + Tailwind CSS**, integrated with **Supabase** (Auth, Database, Realtime, Private Storage) and a resilient **Local Real-Time Sandbox Mode** for instant playability out of the box.
+A complete, private, full-stack couples' web app designed as a romantic gift for **Ayush & Vrishti**. Built with **React 18 + TypeScript + Vite + Tailwind CSS**, connected to a dedicated **Express + SQLite + WebSockets** backend with JWT authentication, real-time sync, and ngrok tunnel support.
+
+- **GitHub Pages Frontend:** `https://ayushrajsingh-07.github.io/The-two-of-us/`
+- **Backend Architecture:** Native SQLite (`node:sqlite` in Node v24) + Native WebSockets (`/api/ws`) + Express REST API on Port `3001`
+- **Initial Credentials:**
+  - **Ayush**: Username `ayush` | Default Password `ayush123`
+  - **Vrishti**: Username `vrishti` | Default Password `vrishti123`
+  *(Passwords can be customized in Sanctuary Settings or via environment variables)*
+
+---
+
+## 🚀 Laptop-Hosted Backend & ngrok Setup
+
+Since your frontend is deployed to GitHub Pages and your backend runs on your laptop, use `ngrok` so your girlfriend can securely connect to your laptop's backend from anywhere in the world!
+
+### 1. Start the Sanctuary Backend
+In your project directory, run:
+```bash
+npm run server
+```
+This boots Express and native WebSockets on `http://localhost:3001` and initializes the SQLite database at `server/data/sanctuary.db`.
+
+### 2. Expose the Backend with ngrok
+In a separate terminal window, run:
+```bash
+ngrok http 3001
+```
+ngrok will print an HTTPS forwarding address, for example:
+```
+Forwarding   https://a1b2-34-56-78-90.ngrok-free.app -> http://localhost:3001
+```
+
+### 3. Connect from the Live Website
+1. Open the website on your phone or PC: [https://ayushrajsingh-07.github.io/The-two-of-us/](https://ayushrajsingh-07.github.io/The-two-of-us/)
+2. On the sign-in screen, expand **"Backend Server & ngrok Setup"** (or click the **"Connect Server"** pill in the top navigation bar).
+3. Paste your ngrok HTTPS URL (`https://xxxx.ngrok-free.app`) and click **"Save & Connect"**.
+4. Both of you can now log in using your respective accounts (**Ayush** or **Vrishti**). All chat messages, daily check-ins, game moves, and photos will now synchronize in real time across the globe!
+
+> ⚠️ **Important Note on Laptop Hosting:**
+> A laptop-hosted backend is only reachable while your laptop is awake, the backend server is running (`npm run server`), and the ngrok tunnel is open (`ngrok http 3001`). If you close your laptop or restart ngrok, a new URL will be generated on free tier. Simply paste the new URL into the app's settings on either device without needing to rebuild or redeploy!
 
 ---
 

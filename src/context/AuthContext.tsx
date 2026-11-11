@@ -3,6 +3,7 @@ import { CoupleSpace, UserProfile, SharedDailyCounterState } from '../types';
 import { DataStore } from '../lib/store';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getKolkataDateString } from '../lib/utils';
+import { getAuthToken, clearAuthSession, getStoredUser, Api } from '../lib/api';
 
 interface AuthContextType {
   couple: CoupleSpace | null;
@@ -12,7 +13,12 @@ interface AuthContextType {
   isPartner1Active: boolean;
   isPaired: boolean;
   isSupabase: boolean;
+  isAuthenticated: boolean;
+  isServerOnline: boolean;
   dailyCounter: SharedDailyCounterState;
+  loginUser: (user: any) => void;
+  logoutUser: () => void;
+  setOfflineMode: () => void;
   switchActiveUser: () => void;
   updateCoupleSettings: (updates: Partial<CoupleSpace>) => Promise<void>;
   updateMyProfile: (profile: { name?: string; avatar?: string; bio?: string }) => Promise<void>;
@@ -22,7 +28,7 @@ interface AuthContextType {
 }
 
 const INITIAL_COUNTER_STATE: SharedDailyCounterState = {
-  sharedCount: 0,
+  sharedCount: 612,
   todayDate: getKolkataDateString(),
   todayRecord: {
     date: getKolkataDateString(),
@@ -40,11 +46,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activePartnerIndex, setActivePartnerIndex] = useState<1 | 2>(1);
   const [dailyCounter, setDailyCounter] = useState<SharedDailyCounterState>(INITIAL_COUNTER_STATE);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    // If token exists or user explicitly chose offline preview before
+    return Boolean(getAuthToken() || localStorage.getItem('two_of_us_offline_mode'));
+  });
+  const [isServerOnline, setIsServerOnline] = useState(false);
 
-  // Load active partner preference from session/localStorage
+  // Load active partner preference and user session
   useEffect(() => {
-    const saved = localStorage.getItem('two_of_us_active_partner');
-    if (saved === '2') setActivePartnerIndex(2);
+    const storedUser = getStoredUser();
+    if (storedUser) {
+      if (storedUser.username === 'vrishti' || storedUser.id === 'partner-2') {
+        setActivePartnerIndex(2);
+      } else {
+        setActivePartnerIndex(1);
+      }
+    } else {
+      const saved = localStorage.getItem('two_of_us_active_partner');
+      if (saved === '2') setActivePartnerIndex(2);
+    }
+
+    // Check server status
+    Api.checkHealth().then((h) => {
+      setIsServerOnline(Boolean(h && h.status));
+    });
   }, []);
 
   const loadData = useCallback(async () => {
@@ -76,25 +101,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }, 1500);
 
-    loadData().then(async () => {
-      try {
-        const c = await DataStore.getCoupleSpace();
-        if (c) {
-          await handleCheckin(c.id, activePartnerIndex === 1);
+    if (isAuthenticated) {
+      loadData().then(async () => {
+        try {
+          const c = await DataStore.getCoupleSpace();
+          if (c) {
+            await handleCheckin(c.id, activePartnerIndex === 1);
+          }
+        } catch (e) {
+          console.warn('Checkin error on mount:', e);
         }
-      } catch (e) {
-        console.warn('Checkin error on mount:', e);
-      }
-    }).catch((e) => {
-      console.warn('loadData caught error:', e);
+      }).catch((e) => {
+        console.warn('loadData caught error:', e);
+        setLoading(false);
+      });
+    } else {
       setLoading(false);
-    });
+    }
 
     const unsub = DataStore.onSync((e) => {
       if (e.type === 'COUPLE_UPDATED' && e.payload) {
         setCouple(e.payload);
       } else if (e.type === 'DAILY_CHECKIN_UPDATED' && e.payload) {
         setDailyCounter(e.payload);
+      } else if (e.type === 'BACKEND_CONNECTED') {
+        setIsServerOnline(true);
+      } else if (e.type === 'BACKEND_DISCONNECTED') {
+        setIsServerOnline(false);
       }
     });
 
@@ -102,7 +135,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearTimeout(safetyTimer);
       if (typeof unsub === 'function') unsub();
     };
-  }, [loadData, activePartnerIndex, handleCheckin]);
+  }, [isAuthenticated, loadData, activePartnerIndex, handleCheckin]);
+
+  const loginUser = (user: any) => {
+    setIsAuthenticated(true);
+    localStorage.removeItem('two_of_us_offline_mode');
+    const isP2 = user?.username === 'vrishti' || user?.id === 'partner-2';
+    const nextIndex: 1 | 2 = isP2 ? 2 : 1;
+    setActivePartnerIndex(nextIndex);
+    localStorage.setItem('two_of_us_active_partner', String(nextIndex));
+    loadData().then(() => {
+      if (couple) handleCheckin(couple.id, nextIndex === 1);
+    });
+  };
+
+  const logoutUser = () => {
+    clearAuthSession();
+    localStorage.removeItem('two_of_us_offline_mode');
+    setIsAuthenticated(false);
+  };
+
+  const setOfflineMode = () => {
+    localStorage.setItem('two_of_us_offline_mode', 'true');
+    setIsAuthenticated(true);
+    loadData();
+  };
 
   const switchActiveUser = () => {
     const next = activePartnerIndex === 1 ? 2 : 1;
@@ -165,7 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const p1: UserProfile = {
     id: 'partner-1',
     name: couple?.partner1Name || 'Ayush',
-    avatar: couple?.partner1Avatar || '',
+    avatar: couple?.partner1Avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     bio: couple?.partner1Bio || 'Adoring boyfriend & puzzle enthusiast. Always smiling when with Vrishti ❤️',
     isPartner1: true,
   };
@@ -173,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const p2: UserProfile = {
     id: 'partner-2',
     name: couple?.partner2Name || 'Vrishti',
-    avatar: couple?.partner2Avatar || '',
+    avatar: couple?.partner2Avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
     bio: couple?.partner2Bio || 'Chief tea drinker, garden master, and Ayush’s favorite human ✨',
     isPartner1: false,
   };
@@ -183,10 +240,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-champagne-50">
+      <div className="min-h-screen flex items-center justify-center bg-champagne-50 dark:bg-[#0f0d14]">
         <div className="text-center p-8">
           <div className="w-12 h-12 border-4 border-rose-300 border-t-rose-600 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-warmgray-600 font-medium">Entering your private sanctuary...</p>
+          <p className="text-warmgray-600 dark:text-warmgray-300 font-medium">Entering your private sanctuary...</p>
         </div>
       </div>
     );
@@ -202,7 +259,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isPartner1Active: activePartnerIndex === 1,
         isPaired: couple?.isPaired ?? true,
         isSupabase: isSupabaseConfigured,
+        isAuthenticated,
+        isServerOnline,
         dailyCounter,
+        loginUser,
+        logoutUser,
+        setOfflineMode,
         switchActiveUser,
         updateCoupleSettings,
         updateMyProfile,

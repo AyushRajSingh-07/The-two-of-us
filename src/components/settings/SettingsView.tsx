@@ -21,13 +21,17 @@ import {
   Copy,
   ExternalLink,
   Sun,
-  Moon
+  Moon,
+  Server,
+  Wifi,
 } from 'lucide-react';
 import { calculateTimeTogether, formatKolkataTime } from '../../lib/utils';
 import { fireHeartConfetti } from '../common/Confetti';
+import { Api, getBackendUrl } from '../../lib/api';
 
 interface SettingsViewProps {
   onNavigateToProfile?: () => void;
+  onOpenServerModal?: () => void;
 }
 
 const TIMEZONE_OPTIONS = [
@@ -41,7 +45,7 @@ const TIMEZONE_OPTIONS = [
   { value: 'Australia/Sydney', label: 'Australia/Sydney (AEST)' },
 ];
 
-export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToProfile }) => {
+export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToProfile, onOpenServerModal }) => {
   const {
     couple,
     currentUser,
@@ -51,6 +55,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToProfile 
     updateCoupleSettings,
     dailyCounter,
     isSupabase,
+    logoutUser,
+    isServerOnline,
   } = useAuth();
   const { isDark, theme, setTheme } = useTheme();
 
@@ -66,12 +72,42 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToProfile 
   const [reminderDateNight, setReminderDateNight] = useState(couple?.reminderDateNight ?? true);
   const [soundEffectsEnabled, setSoundEffectsEnabled] = useState(couple?.soundEffectsEnabled ?? true);
 
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordStatusMsg, setPasswordStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   const [copiedCode, setCopiedCode] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
 
   const timeStats = calculateTimeTogether(anniversaryDate);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordStatusMsg(null);
+    if (!currentPassword || !newPassword) {
+      setPasswordStatusMsg({ type: 'error', text: 'Please fill in both current and new passwords.' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordStatusMsg({ type: 'error', text: 'New password must be at least 6 characters.' });
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      await Api.changePassword(currentPassword, newPassword);
+      setPasswordStatusMsg({ type: 'success', text: 'Password successfully updated!' });
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err: any) {
+      setPasswordStatusMsg({ type: 'error', text: err.message || 'Failed to update password.' });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
 
   const handleCopyInvite = () => {
     if (couple?.inviteCode) {
@@ -549,30 +585,104 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToProfile 
             </label>
           </div>
 
-          {/* Database / Backend Status */}
-          <div className="p-4 bg-rose-50/40 dark:bg-rose-950/20 rounded-2xl border border-rose-100 dark:border-rose-900/30 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <Database className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+          {/* Sanctuary Backend & ngrok Tunnel Connection */}
+          <div className="p-4 bg-rose-50/40 dark:bg-rose-950/20 rounded-2xl border border-rose-100 dark:border-rose-900/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <Server className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0" />
               <div>
-                <strong className="text-warmgray-800 dark:text-warmgray-200 block">Backend Storage Engine:</strong>
-                <span className="text-warmgray-500 dark:text-warmgray-400">
-                  {isSupabase
-                    ? 'Connected to Supabase PostgreSQL & Private Storage Bucket with RLS'
-                    : 'Encrypted Local & Cross-Device Sync Sandbox (Production Ready for Supabase)'}
+                <strong className="text-warmgray-800 dark:text-warmgray-200 block text-sm">
+                  Sanctuary Backend & ngrok Tunnel:
+                </strong>
+                <span className="text-warmgray-500 dark:text-warmgray-400 font-mono text-[11px] block mt-0.5">
+                  Host: {getBackendUrl()}
                 </span>
               </div>
             </div>
-            <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] ${
-              isSupabase ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300'
-            }`}>
-              {isSupabase ? 'Supabase Active' : 'Private Local'}
-            </span>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] inline-flex items-center gap-1 ${
+                isServerOnline
+                  ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
+                  : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isServerOnline ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+                {isServerOnline ? 'Backend Online' : 'Offline / Check ngrok'}
+              </span>
+
+              {onOpenServerModal && (
+                <button
+                  type="button"
+                  onClick={onOpenServerModal}
+                  className="px-3 py-1 bg-white dark:bg-[#20182a] border border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-semibold transition"
+                >
+                  Configure ngrok URL
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Account Security: Change Password */}
+          <div className="p-4 rounded-2xl border border-warmgray-200 dark:border-rose-900/30 bg-warmgray-50/40 dark:bg-[#20182a] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-rose-500" />
+                <span className="font-semibold text-xs sm:text-sm text-warmgray-900 dark:text-warmgray-100">
+                  Account Password for {currentUser.name}
+                </span>
+              </div>
+              <span className="text-[11px] text-warmgray-400">
+                Encrypted with bcrypt
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] text-warmgray-500 dark:text-warmgray-400 mb-1">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="w-full px-3 py-1.5 rounded-xl border border-warmgray-200 dark:border-rose-900/40 text-xs bg-white dark:bg-[#15111c] text-warmgray-900 dark:text-warmgray-100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-warmgray-500 dark:text-warmgray-400 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  className="w-full px-3 py-1.5 rounded-xl border border-warmgray-200 dark:border-rose-900/40 text-xs bg-white dark:bg-[#15111c] text-warmgray-900 dark:text-warmgray-100"
+                />
+              </div>
+            </div>
+
+            {passwordStatusMsg && (
+              <p className={`text-[11px] font-medium ${
+                passwordStatusMsg.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+              }`}>
+                {passwordStatusMsg.text}
+              </p>
+            )}
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                disabled={isChangingPassword || !currentPassword || !newPassword}
+                onClick={handleChangePassword}
+                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white rounded-xl text-xs font-semibold transition"
+              >
+                {isChangingPassword ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
           </div>
 
           {/* Sign Out / Reset Session */}
           <div className="pt-2 border-t border-rose-100 dark:border-rose-900/40 flex items-center justify-between">
             <span className="text-xs text-warmgray-500 dark:text-warmgray-400">
-              Want to lock the screen or switch device?
+              Want to lock the screen or switch account?
             </span>
             <button
               type="button"
@@ -580,7 +690,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToProfile 
               className="px-3.5 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition flex items-center gap-1.5"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>Sign Out / Switch Session</span>
+              <span>Sign Out of Sanctuary</span>
             </button>
           </div>
         </div>
@@ -605,7 +715,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToProfile 
               Sign Out from Sanctuary?
             </h3>
             <p className="text-xs text-warmgray-600 dark:text-warmgray-300">
-              You can easily log back in using your couple invite code (<code className="px-1.5 py-0.5 rounded bg-warmgray-100 dark:bg-[#2c223a] text-rose-600 dark:text-rose-300 font-mono">{couple?.inviteCode}</code>) at any time.
+              You will return to the sign-in screen. You can log back in with your password at any time.
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
@@ -618,12 +728,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToProfile 
               <button
                 type="button"
                 onClick={() => {
-                  switchActiveUser();
+                  logoutUser();
                   setShowSignoutConfirm(false);
                 }}
                 className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition"
               >
-                Confirm Switch
+                Sign Out
               </button>
             </div>
           </div>

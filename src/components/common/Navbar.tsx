@@ -7,15 +7,17 @@ interface NavbarProps {
   activeTab: 'games' | 'chat' | 'photos' | 'profile' | 'settings';
   setActiveTab: (tab: 'games' | 'chat' | 'photos' | 'profile' | 'settings') => void;
   onOpenSettings?: () => void;
+  onOpenServerModal?: () => void;
   unreadCount?: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
+  onOpenServerModal,
   unreadCount = 0,
 }) => {
-  const { couple, currentUser, partner, switchActiveUser, dailyCounter } = useAuth();
+  const { couple, currentUser, partner, switchActiveUser, dailyCounter, isServerOnline } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
   return (
@@ -141,6 +143,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               ) : (
                 <Moon className="w-5 h-5 text-warmgray-600 hover:-rotate-12 transition-transform" />
               )}
+            </button>
+
+            {/* Server Status Pill & ngrok Modal Launcher */}
+            <button
+              onClick={onOpenServerModal}
+              title={isServerOnline ? "Connected to Backend Server (Click to view/edit ngrok URL)" : "Backend Offline - Click to configure ngrok URL"}
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-xl border transition shadow-2xs ${
+                isServerOnline
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
+                  : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${isServerOnline ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+              <span>{isServerOnline ? 'Live Backend' : 'Connect Server'}</span>
             </button>
 
             {/* Quick Switcher for Testing/Co-op */}

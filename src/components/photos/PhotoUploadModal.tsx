@@ -88,6 +88,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
         album: chosenAlbum,
         dateTaken,
         isFavorite: false,
+        file: file || undefined,
       });
 
       clearInterval(interval);
