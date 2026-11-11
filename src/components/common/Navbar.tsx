@@ -49,14 +49,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {couple?.partner2Name}
                 </span>
               </div>
-              {timeStats.totalDays > 0 ? (
-                <div className="flex items-center gap-1 text-[11px] font-medium text-rose-600">
-                  <Sparkles className="w-3 h-3 text-rose-400" />
-                  <span>{timeStats.totalDays} days of love</span>
-                </div>
-              ) : (
-                <span className="text-[11px] text-warmgray-400">Our Sanctuary</span>
-              )}
+              <div className="flex items-center gap-1 text-[11px] font-medium text-rose-600">
+                <Sparkles className="w-3 h-3 text-rose-400" />
+                <span>{timeStats.totalDays} days of love</span>
+              </div>
             </div>
           </div>
 

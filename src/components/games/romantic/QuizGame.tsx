@@ -22,7 +22,7 @@ const DEFAULT_QUESTIONS: QuizQuestion[] = [
   {
     id: 'q2',
     question: 'Who is more likely to fall asleep during a late-night movie?',
-    options: ['Alex', 'Jordan', 'Both equally', 'Neither, movie buffs!'],
+    options: ['Ayush', 'Vrishti', 'Both equally', 'Neither, movie buffs!'],
     correctIndex: 1,
     explanation: 'Within 20 minutes of starting any movie after 10 PM!',
   },

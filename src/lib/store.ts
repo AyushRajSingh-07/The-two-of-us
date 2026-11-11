@@ -1,14 +1,15 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { CoupleSpace, ChatMessage, PhotoItem, GameSessionState } from '../types';
+import { CoupleSpace, ChatMessage, PhotoItem, GameSessionState, SharedDailyCounterState, DailyCheckinRecord } from '../types';
+import { getKolkataDateString } from './utils';
 
-// Default initial couple profile
+// Default initial couple profile with reset Love Day counter (anniversary = today in Asia/Kolkata)
 const DEFAULT_COUPLE: CoupleSpace = {
   id: 'couple-space-default',
-  partner1Name: 'Alex',
+  partner1Name: 'Ayush',
   partner1Avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  partner2Name: 'Jordan',
+  partner2Name: 'Vrishti',
   partner2Avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-  anniversaryDate: '2024-02-14',
+  anniversaryDate: getKolkataDateString(),
   welcomeMessage: 'Welcome to our private sanctuary. A quiet corner just for us.',
   inviteCode: 'US-FOREVER-2024',
   isPaired: true,
@@ -21,7 +22,7 @@ const DEFAULT_MESSAGES: ChatMessage[] = [
     id: 'msg-1',
     spaceId: 'couple-space-default',
     senderId: 'partner-1',
-    senderName: 'Alex',
+    senderName: 'Ayush',
     senderAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     text: 'Hey sweetheart! Welcome to our private website! 💕 Look around, we have games, our private photo album, and this chat.',
     reactions: { '❤️': ['partner-2'], '✨': ['partner-1'] },
@@ -33,7 +34,7 @@ const DEFAULT_MESSAGES: ChatMessage[] = [
     id: 'msg-2',
     spaceId: 'couple-space-default',
     senderId: 'partner-2',
-    senderName: 'Jordan',
+    senderName: 'Vrishti',
     senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     text: 'Omg this is amazing!! Did you build this for us? 🥰 Want to play the Together Maze or try the quizzes first?',
     reactions: { '🥰': ['partner-1'] },
@@ -45,7 +46,7 @@ const DEFAULT_MESSAGES: ChatMessage[] = [
     id: 'msg-3',
     spaceId: 'couple-space-default',
     senderId: 'partner-1',
-    senderName: 'Alex',
+    senderName: 'Ayush',
     senderAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     text: 'Let\'s try the Garden or Draw and Guess first! I also uploaded our favorite sunset photo in the gallery 🌅',
     reactions: {},
@@ -61,7 +62,7 @@ const DEFAULT_PHOTOS: PhotoItem[] = [
     id: 'photo-1',
     spaceId: 'couple-space-default',
     uploaderId: 'partner-1',
-    uploaderName: 'Alex',
+    uploaderName: 'Ayush',
     url: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=1000&auto=format&fit=crop&q=80',
     caption: 'Our spontaneous sunset walk by the coast. One of my favorite days ever.',
     dateTaken: '2024-06-15',
@@ -73,7 +74,7 @@ const DEFAULT_PHOTOS: PhotoItem[] = [
     id: 'photo-2',
     spaceId: 'couple-space-default',
     uploaderId: 'partner-2',
-    uploaderName: 'Jordan',
+    uploaderName: 'Vrishti',
     url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1000&auto=format&fit=crop&q=80',
     caption: 'Coffee date where we stayed talking until the cafe closed.',
     dateTaken: '2024-04-10',
@@ -85,7 +86,7 @@ const DEFAULT_PHOTOS: PhotoItem[] = [
     id: 'photo-3',
     spaceId: 'couple-space-default',
     uploaderId: 'partner-1',
-    uploaderName: 'Alex',
+    uploaderName: 'Ayush',
     url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1000&auto=format&fit=crop&q=80',
     caption: 'First road trip together! Singing our lungs out to nostalgic playlists.',
     dateTaken: '2024-07-22',
@@ -170,7 +171,15 @@ export const DataStore = {
         console.warn('Supabase fetch couple error, falling back to local', e);
       }
     }
-    return loadLocal<CoupleSpace>('couple_space', DEFAULT_COUPLE);
+    const local = loadLocal<CoupleSpace>('couple_space', DEFAULT_COUPLE);
+    // Auto-migrate legacy default names and reset Love Day counter to 0 if needed
+    if (local.partner1Name === 'Alex' || local.partner2Name === 'Jordan' || local.anniversaryDate === '2024-02-14') {
+      local.partner1Name = 'Ayush';
+      local.partner2Name = 'Vrishti';
+      local.anniversaryDate = getKolkataDateString();
+      saveLocal('couple_space', local);
+    }
+    return local;
   },
 
   async saveCoupleSpace(space: CoupleSpace): Promise<CoupleSpace> {
@@ -524,6 +533,130 @@ export const DataStore = {
     }
 
     notifySync('GAME_UPDATED', session);
+  },
+
+  // Shared Daily Login Check-in Counter (Asia/Kolkata timezone)
+  async getDailyCounterState(spaceId: string): Promise<SharedDailyCounterState> {
+    const today = getKolkataDateString();
+    let history: Record<string, DailyCheckinRecord> = {};
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('daily_checkins')
+          .select('*')
+          .order('checkin_date', { ascending: false });
+
+        if (data && !error) {
+          data.forEach((row: any) => {
+            history[row.checkin_date] = {
+              date: row.checkin_date,
+              partner1CheckedIn: Boolean(row.partner1_checked_in),
+              partner1CheckedInAt: row.partner1_checked_in_at,
+              partner2CheckedIn: Boolean(row.partner2_checked_in),
+              partner2CheckedInAt: row.partner2_checked_in_at,
+              bothCompleted: Boolean(row.both_completed),
+            };
+          });
+        }
+      } catch (e) {
+        console.warn('Supabase getDailyCounterState error', e);
+      }
+    }
+
+    if (Object.keys(history).length === 0) {
+      history = loadLocal<Record<string, DailyCheckinRecord>>('daily_checkin_history', {});
+    }
+
+    // Default today record if not exists
+    if (!history[today]) {
+      history[today] = {
+        date: today,
+        partner1CheckedIn: false,
+        partner2CheckedIn: false,
+        bothCompleted: false,
+      };
+    }
+
+    // Compute cumulative shared count (count of distinct calendar days where both completed)
+    const sharedCount = Object.values(history).filter((rec) => rec.bothCompleted).length;
+
+    return {
+      sharedCount,
+      todayDate: today,
+      todayRecord: history[today],
+      history,
+    };
+  },
+
+  async recordDailyLogin(spaceId: string, isPartner1: boolean): Promise<SharedDailyCounterState> {
+    const today = getKolkataDateString();
+    const current = await this.getDailyCounterState(spaceId);
+    const history = { ...current.history };
+    const todayRecord: DailyCheckinRecord = { ...(history[today] || {
+      date: today,
+      partner1CheckedIn: false,
+      partner2CheckedIn: false,
+      bothCompleted: false,
+    }) };
+
+    let changed = false;
+    const nowIso = new Date().toISOString();
+
+    if (isPartner1) {
+      if (!todayRecord.partner1CheckedIn) {
+        todayRecord.partner1CheckedIn = true;
+        todayRecord.partner1CheckedInAt = nowIso;
+        changed = true;
+      }
+    } else {
+      if (!todayRecord.partner2CheckedIn) {
+        todayRecord.partner2CheckedIn = true;
+        todayRecord.partner2CheckedInAt = nowIso;
+        changed = true;
+      }
+    }
+
+    // Check if both completed today
+    if (todayRecord.partner1CheckedIn && todayRecord.partner2CheckedIn && !todayRecord.bothCompleted) {
+      todayRecord.bothCompleted = true;
+      changed = true;
+    }
+
+    history[today] = todayRecord;
+    saveLocal('daily_checkin_history', history);
+
+    if (isSupabaseConfigured && supabase && changed) {
+      try {
+        await supabase.from('daily_checkins').upsert({
+          space_id: spaceId.startsWith('couple-space') ? null : spaceId,
+          checkin_date: today,
+          partner1_checked_in: todayRecord.partner1CheckedIn,
+          partner1_checked_in_at: todayRecord.partner1CheckedInAt,
+          partner2_checked_in: todayRecord.partner2CheckedIn,
+          partner2_checked_in_at: todayRecord.partner2CheckedInAt,
+          both_completed: todayRecord.bothCompleted,
+          updated_at: nowIso,
+        }, {
+          onConflict: 'space_id,checkin_date',
+        });
+      } catch (e) {
+        console.error('Supabase daily checkin upsert error', e);
+      }
+    }
+
+    const updatedSharedCount = Object.values(history).filter((rec) => rec.bothCompleted).length;
+    const result: SharedDailyCounterState = {
+      sharedCount: updatedSharedCount,
+      todayDate: today,
+      todayRecord,
+      history,
+    };
+
+    if (changed) {
+      notifySync('DAILY_CHECKIN_UPDATED', result);
+    }
+    return result;
   },
 
   // Event Listeners for Real-time Reactive Updates (Cross-device, Cross-tab, Local)

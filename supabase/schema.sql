@@ -196,14 +196,53 @@ CREATE POLICY "Couples can create or update game session"
         )
     );
 
--- 5. Realtime Publication
+-- 5. Daily Checkins Table (Shared login counter in Asia/Kolkata timezone)
+CREATE TABLE IF NOT EXISTS public.daily_checkins (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    space_id UUID REFERENCES public.couples(id) ON DELETE CASCADE,
+    checkin_date DATE NOT NULL,
+    partner1_checked_in BOOLEAN DEFAULT FALSE,
+    partner1_checked_in_at TIMESTAMPTZ,
+    partner2_checked_in BOOLEAN DEFAULT FALSE,
+    partner2_checked_in_at TIMESTAMPTZ,
+    both_completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_space_date UNIQUE (space_id, checkin_date)
+);
+
+-- Enable RLS on daily_checkins
+ALTER TABLE public.daily_checkins ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Couples can read daily checkins"
+    ON public.daily_checkins FOR SELECT
+    USING (
+        space_id IS NULL OR EXISTS (
+            SELECT 1 FROM public.couples c
+            WHERE c.id = daily_checkins.space_id
+            AND (c.partner1_id = auth.uid() OR c.partner2_id = auth.uid())
+        )
+    );
+
+CREATE POLICY "Couples can insert/update daily checkins"
+    ON public.daily_checkins FOR ALL
+    USING (
+        space_id IS NULL OR EXISTS (
+            SELECT 1 FROM public.couples c
+            WHERE c.id = daily_checkins.space_id
+            AND (c.partner1_id = auth.uid() OR c.partner2_id = auth.uid())
+        )
+    );
+
+-- 6. Realtime Publication
 -- Add tables to supabase_realtime publication
 ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.game_sessions;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.photos;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.couples;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.daily_checkins;
 
--- 6. Storage Bucket Configuration
+-- 7. Storage Bucket Configuration
 -- Create private bucket for couple photos if not exists
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('couple-photos', 'couple-photos', false)

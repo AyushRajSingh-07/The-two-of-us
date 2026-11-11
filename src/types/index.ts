@@ -77,3 +77,19 @@ export interface GameSessionState<T = any> {
   lastUpdatedBy: string;
   updatedAt: string;
 }
+
+export interface DailyCheckinRecord {
+  date: string; // YYYY-MM-DD in Asia/Kolkata
+  partner1CheckedIn: boolean; // Ayush
+  partner1CheckedInAt?: string;
+  partner2CheckedIn: boolean; // Vrishti
+  partner2CheckedInAt?: string;
+  bothCompleted: boolean;
+}
+
+export interface SharedDailyCounterState {
+  sharedCount: number; // Cumulative days where both Ayush and Vrishti logged in
+  todayDate: string; // YYYY-MM-DD in Asia/Kolkata
+  todayRecord: DailyCheckinRecord;
+  history: Record<string, DailyCheckinRecord>;
+}

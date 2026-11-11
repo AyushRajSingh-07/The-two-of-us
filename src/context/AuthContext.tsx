@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { CoupleSpace, UserProfile } from '../types';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { CoupleSpace, UserProfile, SharedDailyCounterState } from '../types';
 import { DataStore } from '../lib/store';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { getKolkataDateString } from '../lib/utils';
 
 interface AuthContextType {
   couple: CoupleSpace | null;
@@ -11,17 +12,32 @@ interface AuthContextType {
   isPartner1Active: boolean;
   isPaired: boolean;
   isSupabase: boolean;
+  dailyCounter: SharedDailyCounterState;
   switchActiveUser: () => void;
   updateCoupleSettings: (updates: Partial<CoupleSpace>) => Promise<void>;
   pairWithInviteCode: (code: string, name: string) => Promise<boolean>;
   refreshCouple: () => Promise<void>;
+  triggerCheckin: () => Promise<void>;
 }
+
+const INITIAL_COUNTER_STATE: SharedDailyCounterState = {
+  sharedCount: 0,
+  todayDate: getKolkataDateString(),
+  todayRecord: {
+    date: getKolkataDateString(),
+    partner1CheckedIn: false,
+    partner2CheckedIn: false,
+    bothCompleted: false,
+  },
+  history: {},
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [couple, setCouple] = useState<CoupleSpace | null>(null);
   const [activePartnerIndex, setActivePartnerIndex] = useState<1 | 2>(1);
+  const [dailyCounter, setDailyCounter] = useState<SharedDailyCounterState>(INITIAL_COUNTER_STATE);
   const [loading, setLoading] = useState(true);
 
   // Load active partner preference from session/localStorage
@@ -30,26 +46,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (saved === '2') setActivePartnerIndex(2);
   }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const c = await DataStore.getCoupleSpace();
     setCouple(c);
+    const counter = await DataStore.getDailyCounterState(c.id);
+    setDailyCounter(counter);
     setLoading(false);
-  };
+  }, []);
+
+  // Record login check-in for current active user
+  const handleCheckin = useCallback(async (spaceId: string, isP1: boolean) => {
+    const updated = await DataStore.recordDailyLogin(spaceId, isP1);
+    setDailyCounter(updated);
+  }, []);
 
   useEffect(() => {
-    loadData();
+    loadData().then(async () => {
+      const c = await DataStore.getCoupleSpace();
+      if (c) {
+        handleCheckin(c.id, activePartnerIndex === 1);
+      }
+    });
+
     const unsub = DataStore.onSync((e) => {
       if (e.type === 'COUPLE_UPDATED') {
         setCouple(e.payload);
+      } else if (e.type === 'DAILY_CHECKIN_UPDATED') {
+        setDailyCounter(e.payload);
       }
     });
     return unsub;
-  }, []);
+  }, [loadData, activePartnerIndex, handleCheckin]);
 
   const switchActiveUser = () => {
     const next = activePartnerIndex === 1 ? 2 : 1;
     setActivePartnerIndex(next);
     localStorage.setItem('two_of_us_active_partner', String(next));
+    if (couple) {
+      handleCheckin(couple.id, next === 1);
+    }
+  };
+
+  const triggerCheckin = async () => {
+    if (!couple) return;
+    await handleCheckin(couple.id, activePartnerIndex === 1);
   };
 
   const updateCoupleSettings = async (updates: Partial<CoupleSpace>) => {
@@ -80,14 +120,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const p1: UserProfile = {
     id: 'partner-1',
-    name: couple?.partner1Name || 'Partner 1',
+    name: couple?.partner1Name || 'Ayush',
     avatar: couple?.partner1Avatar || '',
     isPartner1: true,
   };
 
   const p2: UserProfile = {
     id: 'partner-2',
-    name: couple?.partner2Name || 'Partner 2',
+    name: couple?.partner2Name || 'Vrishti',
     avatar: couple?.partner2Avatar || '',
     isPartner1: false,
   };
@@ -116,10 +156,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isPartner1Active: activePartnerIndex === 1,
         isPaired: couple?.isPaired ?? true,
         isSupabase: isSupabaseConfigured,
+        dailyCounter,
         switchActiveUser,
         updateCoupleSettings,
         pairWithInviteCode,
         refreshCouple,
+        triggerCheckin,
       }}
     >
       {children}

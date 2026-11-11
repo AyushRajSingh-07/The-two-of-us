@@ -74,7 +74,7 @@ export const PairingScreen: React.FC<{ onPaired: () => void }> = ({ onPaired }) 
                 type="text"
                 value={partnerName}
                 onChange={(e) => setPartnerName(e.target.value)}
-                placeholder="e.g. Jordan"
+                placeholder="e.g. Vrishti"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-warmgray-200 bg-champagne-50/40 text-xs focus:outline-none focus:ring-2 focus:ring-rose-400"
                 required
               />

@@ -106,7 +106,7 @@ The entire website is responsive from 360px smartphone screens up to 4K monitors
 3. Open your browser at `http://localhost:5173`.
 
 > **Testing 2-Player Co-op Locally:**
-> Open two browser windows side-by-side (or one incognito window). In one window, click **"Viewing as Alex"** to switch to Partner 1, and in the other window switch to Partner 2. Watch moves in Together Maze, Draw & Guess, Garden watering, and Chat sync in real time across the two tabs!
+> Open two browser windows side-by-side (or one incognito window). In one window, click **"Viewing as Ayush"** to switch to Partner 1, and in the other window switch to Vrishti. Watch moves in Together Maze, Draw & Guess, Garden watering, and Chat sync in real time across the two tabs!
 
 ---
 

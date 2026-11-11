@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/common/Navbar';
 import { SettingsModal } from './components/common/SettingsModal';
 import { PairingScreen } from './components/common/PairingScreen';
+import { DailyLoginCounter } from './components/common/DailyLoginCounter';
 import { GamesHub } from './components/games/GamesHub';
 import { ChatView } from './components/chat/ChatView';
 import { PhotosView } from './components/photos/PhotosView';
@@ -68,10 +69,10 @@ const MainAppContent: React.FC = () => {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 md:py-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-6">
         {/* Welcome Love Banner on Games and Photos tabs */}
         {activeTab !== 'chat' && (
-          <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white/70 backdrop-blur-xs rounded-2xl border border-rose-100 shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white/70 backdrop-blur-xs rounded-2xl border border-rose-100 shadow-2xs">
             <div className="flex items-center gap-2.5 text-xs text-warmgray-600">
               <span className="p-1.5 bg-rose-50 text-rose-500 rounded-lg">
                 <Heart className="w-4 h-4 fill-rose-500" />
@@ -81,15 +82,14 @@ const MainAppContent: React.FC = () => {
               </span>
             </div>
 
-            {timeStats.totalDays > 0 && (
-              <div className="text-xs font-semibold text-rose-700 bg-rose-50 px-3 py-1 rounded-full border border-rose-200/60 whitespace-nowrap">
-                {timeStats.years > 0 ? `${timeStats.years}y ` : ''}
-                {timeStats.months > 0 ? `${timeStats.months}m ` : ''}
-                {timeStats.days}d of joy together ✨
-              </div>
-            )}
+            <div className="text-xs font-semibold text-rose-700 bg-rose-50 px-3 py-1 rounded-full border border-rose-200/60 whitespace-nowrap">
+              {timeStats.totalDays} days of joy together ✨
+            </div>
           </div>
         )}
+
+        {/* Shared Daily Login Counter (Ayush & Vrishti in Asia/Kolkata) */}
+        {activeTab !== 'chat' && <DailyLoginCounter />}
 
         {/* Tab View Switcher */}
         {activeTab === 'games' && <GamesHub />}

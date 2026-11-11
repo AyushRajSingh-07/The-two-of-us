@@ -1,3 +1,33 @@
+// Get current date string formatted as YYYY-MM-DD in Asia/Kolkata timezone
+export function getKolkataDateString(date: Date = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  } catch {
+    return date.toISOString().split('T')[0];
+  }
+}
+
+// Format timestamp in Asia/Kolkata timezone (e.g. "5:15 PM")
+export function formatKolkataTime(isoDate?: string): string {
+  if (!isoDate) return '';
+  try {
+    const d = new Date(isoDate);
+    return new Intl.DateTimeFormat(undefined, {
+      timeZone: 'Asia/Kolkata',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(d);
+  } catch {
+    return '';
+  }
+}
+
 export function calculateTimeTogether(startDateStr: string) {
   if (!startDateStr) {
     return {

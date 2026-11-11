@@ -84,7 +84,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   type="text"
                   value={partner1Name}
                   onChange={(e) => setPartner1Name(e.target.value)}
-                  placeholder="e.g. Alex"
+                  placeholder="e.g. Ayush"
                   className="w-full px-3.5 py-2 rounded-xl border border-rose-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
                 />
               </div>
@@ -129,7 +129,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   type="text"
                   value={partner2Name}
                   onChange={(e) => setPartner2Name(e.target.value)}
-                  placeholder="e.g. Jordan"
+                  placeholder="e.g. Vrishti"
                   className="w-full px-3.5 py-2 rounded-xl border border-amber-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
               </div>

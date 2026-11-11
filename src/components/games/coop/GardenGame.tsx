@@ -20,10 +20,10 @@ interface GardenState {
 
 const DEFAULT_GARDEN: GardenState = {
   plots: [
-    { id: 0, plantType: 'Rose', stage: 3, waterLevel: 80, plantedBy: 'Alex' },
-    { id: 1, plantType: 'Strawberry', stage: 2, waterLevel: 60, plantedBy: 'Jordan' },
-    { id: 2, plantType: 'Lavender', stage: 3, waterLevel: 90, plantedBy: 'Alex' },
-    { id: 3, plantType: 'Sunflower', stage: 1, waterLevel: 40, plantedBy: 'Jordan' },
+    { id: 0, plantType: 'Rose', stage: 3, waterLevel: 80, plantedBy: 'Ayush' },
+    { id: 1, plantType: 'Strawberry', stage: 2, waterLevel: 60, plantedBy: 'Vrishti' },
+    { id: 2, plantType: 'Lavender', stage: 3, waterLevel: 90, plantedBy: 'Ayush' },
+    { id: 3, plantType: 'Sunflower', stage: 1, waterLevel: 40, plantedBy: 'Vrishti' },
     { id: 4, plantType: null, stage: 0, waterLevel: 0 },
     { id: 5, plantType: null, stage: 0, waterLevel: 0 },
   ],
