@@ -4,8 +4,8 @@ import react from '@vitejs/plugin-react';
 // In-memory sync store for cross-device local Wi-Fi testing (phone + PC)
 const memorySyncStore: Record<string, any> = {};
 
-export default defineConfig({
-  base: './',
+export default defineConfig(({ mode }) => ({
+  base: process.env.BASE_URL || (mode === 'production' ? '/The-two-of-us/' : '/'),
   plugins: [
     react(),
     {
@@ -83,4 +83,4 @@ export default defineConfig({
     port: 5173,
     host: true, // Listens on all local IP addresses (0.0.0.0) so phone can connect via Wi-Fi!
   },
-});
+}));
