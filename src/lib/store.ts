@@ -115,11 +115,18 @@ const broadcastChannel = typeof BroadcastChannel !== 'undefined'
 // Track active Supabase realtime channel for game sessions
 let activeGameRealtimeChannel: any = null;
 
-// LocalStorage helpers
+// LocalStorage helpers with robust null/corruption protection
 function loadLocal<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(`two_of_us_${key}`);
-    return raw ? JSON.parse(raw) : fallback;
+    if (raw === null || raw === undefined || raw === 'undefined' || raw === 'null' || raw === '') {
+      return fallback;
+    }
+    const parsed = JSON.parse(raw);
+    if (parsed === null || parsed === undefined) {
+      return fallback;
+    }
+    return parsed;
   } catch {
     return fallback;
   }
@@ -192,7 +199,10 @@ export const DataStore = {
         console.warn('Supabase fetch couple error, falling back to local', e);
       }
     }
-    const local = loadLocal<CoupleSpace>('couple_space', DEFAULT_COUPLE);
+    let local = loadLocal<CoupleSpace>('couple_space', DEFAULT_COUPLE);
+    if (!local || typeof local !== 'object') {
+      local = { ...DEFAULT_COUPLE };
+    }
     // Auto-migrate legacy default names, add bio defaults, and reset Love Day counter to 612
     if (!local.partner1Bio) local.partner1Bio = DEFAULT_COUPLE.partner1Bio;
     if (!local.partner2Bio) local.partner2Bio = DEFAULT_COUPLE.partner2Bio;
@@ -588,15 +598,17 @@ export const DataStore = {
 
       // Reset today record to pending so counter starts at 612 waiting for today's logins
       const currentHistory = loadLocal<Record<string, DailyCheckinRecord>>('daily_checkin_history', {});
-      currentHistory[today] = {
+      const safeHistory = (currentHistory && typeof currentHistory === 'object') ? currentHistory : {};
+      safeHistory[today] = {
         date: today,
         partner1CheckedIn: false,
         partner2CheckedIn: false,
         bothCompleted: false,
       };
-      saveLocal('daily_checkin_history', currentHistory);
+      saveLocal('daily_checkin_history', safeHistory);
 
-      const couple = loadLocal<CoupleSpace>('couple_space', DEFAULT_COUPLE);
+      let couple = loadLocal<CoupleSpace>('couple_space', DEFAULT_COUPLE);
+      if (!couple || typeof couple !== 'object') couple = { ...DEFAULT_COUPLE };
       couple.loveDayBaseCount = 612;
       couple.loveDayBaseMigrated = true;
       saveLocal('couple_space', couple);
@@ -627,7 +639,8 @@ export const DataStore = {
     }
 
     if (Object.keys(history).length === 0) {
-      history = loadLocal<Record<string, DailyCheckinRecord>>('daily_checkin_history', {});
+      const localHist = loadLocal<Record<string, DailyCheckinRecord>>('daily_checkin_history', {});
+      history = (localHist && typeof localHist === 'object') ? localHist : {};
     }
 
     // Default today record if not exists
@@ -640,13 +653,15 @@ export const DataStore = {
       };
     }
 
-    const baseCount = loadLocal<number>('love_day_base_count', 612);
-    let datesCounted = loadLocal<string[]>(LOVE_DAY_DATES_COUNTED_KEY, []);
+    const rawBase = loadLocal<number>('love_day_base_count', 612);
+    const baseCount = (typeof rawBase === 'number' && !isNaN(rawBase)) ? rawBase : 612;
+    const rawDates = loadLocal<string[]>(LOVE_DAY_DATES_COUNTED_KEY, []);
+    let datesCounted = Array.isArray(rawDates) ? [...rawDates] : [];
 
     // Sync any days where both completed into datesCounted
     let datesChanged = false;
     Object.entries(history).forEach(([dateStr, rec]) => {
-      if (rec.bothCompleted && !datesCounted.includes(dateStr)) {
+      if (rec && rec.bothCompleted && !datesCounted.includes(dateStr)) {
         datesCounted.push(dateStr);
         datesChanged = true;
       }
@@ -702,8 +717,10 @@ export const DataStore = {
     history[today] = todayRecord;
     saveLocal('daily_checkin_history', history);
 
-    const baseCount = loadLocal<number>('love_day_base_count', 612);
-    let datesCounted = loadLocal<string[]>(LOVE_DAY_DATES_COUNTED_KEY, []);
+    const rawBase = loadLocal<number>('love_day_base_count', 612);
+    const baseCount = (typeof rawBase === 'number' && !isNaN(rawBase)) ? rawBase : 612;
+    const rawDates = loadLocal<string[]>(LOVE_DAY_DATES_COUNTED_KEY, []);
+    let datesCounted = Array.isArray(rawDates) ? [...rawDates] : [];
     if (todayRecord.bothCompleted && !datesCounted.includes(today)) {
       datesCounted.push(today);
       saveLocal('love_day_dates_counted', datesCounted);

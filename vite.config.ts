@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 const memorySyncStore: Record<string, any> = {};
 
 export default defineConfig({
+  base: './',
   plugins: [
     react(),
     {

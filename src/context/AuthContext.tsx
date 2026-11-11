@@ -48,35 +48,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loadData = useCallback(async () => {
-    const c = await DataStore.getCoupleSpace();
-    setCouple(c);
-    const counter = await DataStore.getDailyCounterState(c.id);
-    setDailyCounter(counter);
-    setLoading(false);
+    try {
+      const c = await DataStore.getCoupleSpace();
+      setCouple(c);
+      const counter = await DataStore.getDailyCounterState(c?.id || 'couple-space-default');
+      setDailyCounter(counter);
+    } catch (err) {
+      console.error('Failed to load initial couple data:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // Record login check-in for current active user
   const handleCheckin = useCallback(async (spaceId: string, isP1: boolean) => {
-    const updated = await DataStore.recordDailyLogin(spaceId, isP1);
-    setDailyCounter(updated);
+    try {
+      const updated = await DataStore.recordDailyLogin(spaceId, isP1);
+      if (updated) setDailyCounter(updated);
+    } catch (err) {
+      console.warn('Check-in recording warning:', err);
+    }
   }, []);
 
   useEffect(() => {
+    // Safety fallback timeout: ensure loading screen NEVER hangs indefinitely
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     loadData().then(async () => {
-      const c = await DataStore.getCoupleSpace();
-      if (c) {
-        handleCheckin(c.id, activePartnerIndex === 1);
+      try {
+        const c = await DataStore.getCoupleSpace();
+        if (c) {
+          await handleCheckin(c.id, activePartnerIndex === 1);
+        }
+      } catch (e) {
+        console.warn('Checkin error on mount:', e);
       }
+    }).catch((e) => {
+      console.warn('loadData caught error:', e);
+      setLoading(false);
     });
 
     const unsub = DataStore.onSync((e) => {
-      if (e.type === 'COUPLE_UPDATED') {
+      if (e.type === 'COUPLE_UPDATED' && e.payload) {
         setCouple(e.payload);
-      } else if (e.type === 'DAILY_CHECKIN_UPDATED') {
+      } else if (e.type === 'DAILY_CHECKIN_UPDATED' && e.payload) {
         setDailyCounter(e.payload);
       }
     });
-    return unsub;
+
+    return () => {
+      clearTimeout(safetyTimer);
+      if (typeof unsub === 'function') unsub();
+    };
   }, [loadData, activePartnerIndex, handleCheckin]);
 
   const switchActiveUser = () => {
