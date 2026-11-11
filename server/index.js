@@ -29,6 +29,7 @@ app.use(
         /^http:\/\/localhost:\d+/,
         /^http:\/\/127\.0\.0\.1:\d+/,
         /\.ngrok-free\.app$/,
+        /\.ngrok-free\.dev$/,
         /\.ngrok\.io$/,
         /\.ngrok\.app$/,
       ];

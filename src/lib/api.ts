@@ -3,22 +3,34 @@ export const BACKEND_URL_STORAGE_KEY = 'two_of_us_backend_url';
 export const TOKEN_STORAGE_KEY = 'two_of_us_auth_token';
 export const USER_STORAGE_KEY = 'two_of_us_auth_user';
 
+export const DEFAULT_PUBLIC_BACKEND_URL = 'https://carrousel-skid-carrousel.ngrok-free.dev';
+
 // Determine backend URL:
-// 1. Runtime override from localStorage (e.g. user pasted new ngrok URL in settings)
+// 1. Runtime override from localStorage (if user explicitly set a non-default custom URL)
 // 2. Build-time Vite env variable VITE_BACKEND_URL
-// 3. Localhost fallback
+// 3. Public ngrok tunnel URL fallback for cross-device access
 export function getBackendUrl(): string {
   if (typeof window !== 'undefined') {
     const custom = localStorage.getItem(BACKEND_URL_STORAGE_KEY);
     if (custom && custom.trim()) {
-      return custom.trim().replace(/\/+$/, '');
+      const clean = custom.trim().replace(/\/+$/, '');
+      // If we are on GitHub Pages or a mobile phone, don't use old localhost:3001 left in localStorage
+      const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (clean.includes('localhost') || clean.includes('127.0.0.1')) {
+        if (isLocalHost) {
+          return clean;
+        }
+        // On external/mobile devices, override obsolete localhost with public ngrok URL
+        return DEFAULT_PUBLIC_BACKEND_URL;
+      }
+      return clean;
     }
   }
   const envUrl = (import.meta.env.VITE_BACKEND_URL as string) || '';
   if (envUrl && envUrl.trim()) {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  return 'http://localhost:3001';
+  return DEFAULT_PUBLIC_BACKEND_URL;
 }
 
 export function setBackendUrl(url: string) {
